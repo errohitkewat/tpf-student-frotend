@@ -2,8 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
-import { ArrowLeft, BookOpen, UserPlus, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Loader2, UserPlus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,15 +43,25 @@ interface CertificateAddProps {
   onBack: () => void;
 }
 
+const today = new Date().toISOString().split("T")[0];
+
+const generateCertificateNumber = () => {
+  return `TFP-CERT-${Date.now()}`;
+};
+
+const generateVerificationHash = () => {
+  return `verify-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
 const defaultValues: CreateCertificateFormValues = {
-  certificateNumber: "",
-  verificationHash: "",
+  certificateNumber: generateCertificateNumber(),
+  verificationHash: generateVerificationHash(),
   studentId: "",
   courseId: "",
   enrollmentId: "",
   batchId: "",
   templateId: "",
-  issueDate: "",
+  issueDate: today,
   completionDate: "",
   grade: "",
   remarks: "",
@@ -73,26 +82,39 @@ export default function AddCertificateForm({ onBack }: CertificateAddProps) {
 
   async function onSubmit(values: CreateCertificateFormValues) {
     const payload = {
+      certificateNumber:
+        values.certificateNumber?.trim() || generateCertificateNumber(),
+
+      verificationHash:
+        values.verificationHash?.trim() || generateVerificationHash(),
+
       studentId: values.studentId.trim(),
       courseId: values.courseId.trim(),
       enrollmentId: values.enrollmentId.trim(),
       batchId: values.batchId.trim(),
       templateId: values.templateId.trim(),
+
+      issueDate: values.issueDate || today,
       completionDate: values.completionDate,
+
       grade: values.grade.trim(),
       generatedBy: values.generatedBy.trim(),
-      ...(values.remarks?.trim() ? { remarks: values.remarks.trim() } : {}),
-      ...(values.revokedReason?.trim()
-        ? { revokedReason: values.revokedReason.trim() }
-        : {}),
-      ...(values.pdfUrl?.trim() ? { pdfUrl: values.pdfUrl.trim() } : {}),
-    };
+      isActive: values.isActive,
 
-    console.log("Certificate payload:", payload);
+      remarks: values.remarks?.trim() || undefined,
+      revokedReason: values.revokedReason?.trim() || undefined,
+      revokedAt: values.revokedAt || undefined,
+      pdfUrl: values.pdfUrl?.trim() || undefined,
+    };
 
     try {
       await mutation.mutateAsync(payload);
-      form.reset(defaultValues);
+      form.reset({
+        ...defaultValues,
+        certificateNumber: generateCertificateNumber(),
+        verificationHash: generateVerificationHash(),
+        issueDate: today,
+      });
       onBack();
     } catch (error) {
       console.log("Certificate submit error:", error);
@@ -100,227 +122,128 @@ export default function AddCertificateForm({ onBack }: CertificateAddProps) {
   }
 
   const handleCancel = () => {
-    form.reset(defaultValues);
+    form.reset();
     onBack();
   };
 
   return (
-    <div className="min-h-screen p-6 space-y-6">
-      <Card className="shadow-sm">
-        <CardContent className="py-4 px-5 flex items-center gap-3">
-          <Button onClick={onBack} variant="ghost" size="icon" type="button">
-            <ArrowLeft className="w-5 h-5 text-indigo-700" />
+    <div className="space-y-6">
+      <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <CardContent className="flex items-center gap-3 p-5">
+          <Button
+            onClick={onBack}
+            variant="outline"
+            size="icon"
+            type="button"
+            className="rounded-xl border-slate-200"
+          >
+            <ArrowLeft className="h-4 w-4" />
           </Button>
 
-          <div className="w-px h-7 bg-border" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+            <BookOpen className="h-5 w-5" />
+          </div>
 
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-700 text-white p-2 rounded-md">
-              <BookOpen className="w-5 h-5" />
-            </div>
-
-            <div>
-              <h1 className="text-lg font-semibold text-indigo-900">
-                Add Certificate
-              </h1>
-
-              <p className="text-sm text-slate-400">Create a new certificate</p>
-            </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-950">
+              Add Certificate
+            </h1>
+            <p className="text-sm text-slate-500">
+              Create a new student certificate.
+            </p>
           </div>
         </CardContent>
       </Card>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
               <CardHeader>
-                <CardTitle>Certificate Info</CardTitle>
-                <CardDescription>Basic certificate details</CardDescription>
+                <CardTitle className="text-lg text-slate-950">
+                  Certificate Info
+                </CardTitle>
+                <CardDescription>
+                  Basic certificate details
+                </CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <FormField
+                <TextInput
                   control={form.control}
                   name="certificateNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Certificate Number</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Certificate Number"
                 />
 
-                <FormField
+                <TextInput
                   control={form.control}
                   name="verificationHash"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Verification Hash</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Verification Hash"
                 />
 
-                <FormField
+                <DateInput
                   control={form.control}
                   name="issueDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Issue Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Issue Date"
                 />
 
-                <FormField
+                <DateInput
                   control={form.control}
                   name="completionDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Completion Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Completion Date"
                 />
 
-                <FormField
-                  control={form.control}
-                  name="grade"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Grade</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <TextInput control={form.control} name="grade" label="Grade" />
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
               <CardHeader>
-                <CardTitle>Student & Course</CardTitle>
-                <CardDescription>Relation details</CardDescription>
+                <CardTitle className="text-lg text-slate-950">
+                  Student & Course
+                </CardTitle>
+                <CardDescription>
+                  Add related student, course, batch and template IDs
+                </CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-4">
-                {[
-                  { name: "studentId", label: "Student" },
-                  { name: "courseId", label: "Course" },
-                  { name: "enrollmentId", label: "Enrollment" },
-                  { name: "batchId", label: "Batch" },
-                  { name: "templateId", label: "Template" },
-                ].map((item) => (
-                  <FormField
-                    key={item.name}
-                    control={form.control}
-                    name={item.name as keyof CreateCertificateFormValues}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{item.label}</FormLabel>
-                        <FormControl>
-                          <Input {...field} value={String(field.value ?? "")} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ))}
+                <TextInput control={form.control} name="studentId" label="Student ID" />
+                <TextInput control={form.control} name="courseId" label="Course ID" />
+                <TextInput control={form.control} name="enrollmentId" label="Enrollment ID" />
+                <TextInput control={form.control} name="batchId" label="Batch ID" />
+                <TextInput control={form.control} name="templateId" label="Template ID" />
               </CardContent>
             </Card>
           </div>
 
-          <Card>
+          <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
             <CardHeader>
-              <CardTitle>Additional Info</CardTitle>
-              <CardDescription>Extra certificate details</CardDescription>
+              <CardTitle className="text-lg text-slate-950">
+                Additional Info
+              </CardTitle>
+              <CardDescription>
+                Optional notes, PDF URL and certificate status
+              </CardDescription>
             </CardHeader>
 
-            <CardContent className="grid md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="remarks"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Remarks</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <TextareaInput control={form.control} name="remarks" label="Remarks" />
+              <TextareaInput
                 control={form.control}
                 name="revokedReason"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Revoked Reason</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Revoked Reason"
               />
 
-              <FormField
+              <TextInput
                 control={form.control}
                 name="generatedBy"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Generated By</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Generated By"
               />
 
-              <FormField
-                control={form.control}
-                name="pdfUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>PDF URL</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <TextInput control={form.control} name="pdfUrl" label="PDF URL" />
 
-              <FormField
-                control={form.control}
-                name="revokedAt"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Revoked At</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <DateInput control={form.control} name="revokedAt" label="Revoked At" />
 
               <FormField
                 control={form.control}
@@ -336,7 +259,7 @@ export default function AddCertificateForm({ onBack }: CertificateAddProps) {
                       value={String(field.value)}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11 rounded-xl border-slate-200">
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                       </FormControl>
@@ -360,24 +283,94 @@ export default function AddCertificateForm({ onBack }: CertificateAddProps) {
               variant="outline"
               onClick={handleCancel}
               disabled={mutation.isPending}
+              className="rounded-xl border-slate-200"
             >
-              <X className="w-4 h-4 mr-2" />
+              <X className="mr-2 h-4 w-4" />
               Cancel
             </Button>
 
-            <Button type="submit" disabled={mutation.isPending}>
+            <Button
+              type="submit"
+              disabled={mutation.isPending}
+              className="rounded-xl bg-slate-950 px-6 text-white hover:bg-slate-800"
+            >
               {mutation.isPending ? (
-                "Loading..."
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <>
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Add Certificate
-                </>
+                <UserPlus className="mr-2 h-4 w-4" />
               )}
+              Add Certificate
             </Button>
           </div>
         </form>
       </Form>
     </div>
+  );
+}
+
+function TextInput({ control, name, label }: any) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <Input
+              {...field}
+              value={String(field.value ?? "")}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
+function DateInput({ control, name, label }: any) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <Input
+              type="date"
+              {...field}
+              value={String(field.value ?? "")}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
+function TextareaInput({ control, name, label }: any) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <Textarea
+              {...field}
+              value={String(field.value ?? "")}
+              className="min-h-24 rounded-xl border-slate-200"
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
   );
 }

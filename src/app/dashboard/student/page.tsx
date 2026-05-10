@@ -1,12 +1,9 @@
-import Main from "./Main"
+import Main from "./Main";
 
-
-function page() {
+export default function Page() {
   return (
-    <div className='w-full px-6 pt-10 overflow-hidden'>
-      <Main/>
+    <div className="w-full px-6 py-8">
+      <Main />
     </div>
-  )
+  );
 }
-
-export default page

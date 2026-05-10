@@ -1,346 +1,169 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-
 import {
   ArrowLeft,
-  Layers,
-  Calendar,
-  Clock,
-  DoorOpen,
-  Hash,
-  Users,
   BookOpen,
-  User,
+  CalendarDays,
+  Clock,
+  Layers,
+  UserRound,
+  Users,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Batch } from "@/lib/type";
 
-import { Batch, BatchStatus } from "@/lib/type";
+const date = (value?: string | Date) => {
+  if (!value) return "—";
 
-interface Props {
-  batch?: Batch;
+  return new Date(value).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+export default function BatchView({
+  batch,
+  onBack,
+}: {
+  batch: Batch;
   onBack: () => void;
-}
-
-export default function BatchView({ batch, onBack }: Props) {
-  if (!batch) {
-    return (
-      <div className="p-6">
-        <p className="text-sm text-red-500">Batch data not found.</p>
-        <Button onClick={onBack} type="button" className="mt-4">
-          Go Back
-        </Button>
-      </div>
-    );
-  }
-
-  const getStatusBadge = (status: BatchStatus) => {
-    switch (status) {
-      case BatchStatus.STARTED:
-        return <Badge className="bg-blue-600 hover:bg-blue-600">Started</Badge>;
-      case BatchStatus.ONGOING:
-        return (
-          <Badge className="bg-green-600 hover:bg-green-600">Ongoing</Badge>
-        );
-      case BatchStatus.COMPLETED:
-        return (
-          <Badge className="bg-slate-600 hover:bg-slate-600">Completed</Badge>
-        );
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-
+}) {
   return (
-    <div className="space-y-8 mt-6 pb-12 font-[Poppins,sans-serif]">
-      <Card className="shadow-md border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
-        <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+    <div className="space-y-6">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-3">
           <Button
             onClick={onBack}
-            variant="ghost"
+            variant="outline"
             size="icon"
-            className="rounded-full hover:bg-indigo-100 text-indigo-700"
-            type="button"
+            className="rounded-xl border-slate-200"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="h-4 w-4" />
           </Button>
 
-          <div className="w-px h-7 bg-slate-200" />
-
-          <div className="flex items-center gap-2">
-            <div className="bg-indigo-600 text-white p-2 rounded-xl">
-              <Layers className="w-5 h-5" />
-            </div>
-
-            <div>
-              <CardTitle className="text-xl font-bold text-indigo-900">
-                Batch Details
-              </CardTitle>
-
-              <p className="text-xs text-slate-400">
-                View complete information about this batch
-              </p>
-            </div>
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+            <Layers size={22} />
           </div>
-        </CardHeader>
-      </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="group overflow-hidden border border-slate-200/60 bg-white/80 shadow-sm rounded-2xl backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-1 rounded-full bg-slate-900" />
-                <div>
-                  <CardTitle className="text-xl font-semibold text-slate-900">
-                    Batch Name
-                  </CardTitle>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Main title of this batch
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="pt-0">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-5">
-                <p className="text-slate-700 leading-8 text-base font-medium">
-                  {batch.name || "No batch name available."}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="group overflow-hidden border border-slate-200/60 bg-white/80 shadow-sm rounded-2xl backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-1 rounded-full bg-slate-900" />
-                <div>
-                  <CardTitle className="text-xl font-semibold text-slate-900">
-                    Batch Information
-                  </CardTitle>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Basic information and schedule details
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="pt-0">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-5 space-y-4">
-                <div className="flex items-center gap-3">
-                  <Hash className="w-4 h-4 text-slate-500" />
-                  <span className="text-slate-700">
-                    {batch.batchCode || "No batch code available."}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Users className="w-4 h-4 text-slate-500" />
-                  <span className="text-slate-700">
-                    Capacity: {batch.capacity}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Clock className="w-4 h-4 text-slate-500" />
-                  <span className="text-slate-700">
-                    {batch.scheduleTime || "No schedule time available."}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <DoorOpen className="w-4 h-4 text-slate-500" />
-                  <span className="text-slate-700">
-                    {batch.roomNo || "No room assigned."}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="group overflow-hidden border border-slate-200/60 bg-white/80 shadow-sm rounded-2xl backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-1 rounded-full bg-slate-900" />
-                <div>
-                  <CardTitle className="text-xl font-semibold text-slate-900">
-                    Schedule & Relations
-                  </CardTitle>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Batch timeline and linked course-teacher details
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="pt-0">
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-5 space-y-4">
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-4 h-4 text-slate-500" />
-                  <span className="text-slate-700">
-                    Start Date:{" "}
-                    {batch.startDate
-                      ? new Date(batch.startDate).toLocaleDateString()
-                      : "N/A"}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-4 h-4 text-slate-500" />
-                  <span className="text-slate-700">
-                    End Date:{" "}
-                    {batch.endDate
-                      ? new Date(batch.endDate).toLocaleDateString()
-                      : "N/A"}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <BookOpen className="w-4 h-4 text-slate-500" />
-                  <span className="text-slate-700">
-                    {batch.course?.title ||
-                      batch.courseId ||
-                      "No course assigned."}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <User className="w-4 h-4 text-slate-500" />
-                  <span className="text-slate-700">
-                    {batch.teacher?.name ||
-                      batch.teacherId ||
-                      "No teacher assigned."}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          <Card className="border-0 shadow-sm bg-white/80 rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-sm text-slate-500">
-                Batch Info
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex justify-between items-center gap-3">
-                <span>Batch ID</span>
-                <span className="font-medium break-all text-right">
-                  {batch.id}
-                </span>
-              </div>
-
-              <Separator />
-
-              <div className="flex justify-between items-center gap-3">
-                <span>Batch Code</span>
-                <span className="font-medium">{batch.batchCode}</span>
-              </div>
-
-              <Separator />
-
-              <div className="flex justify-between items-center gap-3">
-                <span>Created</span>
-                <span>
-                  {batch.createdAt
-                    ? new Date(batch.createdAt).toLocaleDateString()
-                    : "N/A"}
-                </span>
-              </div>
-
-              <Separator />
-
-              <div className="flex justify-between items-center gap-3">
-                <span>Last Updated</span>
-                <span>
-                  {batch.updatedAt
-                    ? new Date(batch.updatedAt).toLocaleDateString()
-                    : "N/A"}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-sm bg-white/80 rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-sm text-slate-500">
-                Batch Status
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent className="space-y-4 text-sm">
-              <div className="flex justify-between items-center">
-                <span>Current Status</span>
-                {getStatusBadge(batch.status)}
-              </div>
-
-              <Separator />
-
-              <div className="flex justify-between items-center">
-                <span>Deleted</span>
-                <Badge variant={batch.isDeleted ? "destructive" : "default"}>
-                  {batch.isDeleted ? "Yes" : "No"}
-                </Badge>
-              </div>
-
-              <Separator />
-
-              <div className="flex justify-between items-center">
-                <span>Students</span>
-                <Badge variant="secondary">{batch.students?.length ?? 0}</Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-white/90 rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-sm text-slate-500">
-                Quick Summary
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent className="space-y-5">
-              <div className="flex items-center gap-3">
-                <Users className="w-4 h-4 text-slate-500" />
-                <div>
-                  <p className="text-sm text-slate-500">Capacity</p>
-                  <p className="text-base font-semibold">{batch.capacity}</p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center gap-3">
-                <Clock className="w-4 h-4 text-slate-500" />
-                <div>
-                  <p className="text-sm text-slate-500">Schedule</p>
-                  <p className="text-base font-semibold">
-                    {batch.scheduleTime}
-                  </p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center gap-3">
-                <DoorOpen className="w-4 h-4 text-slate-500" />
-                <div>
-                  <p className="text-sm text-slate-500">Room No</p>
-                  <p className="text-base font-semibold">
-                    {batch.roomNo || "N/A"}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div>
+            <h1 className="text-xl font-bold text-slate-950">
+              Batch Details
+            </h1>
+            <p className="text-sm text-slate-500">
+              Complete overview of selected batch.
+            </p>
+          </div>
         </div>
       </div>
+
+      <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-indigo-600 via-indigo-700 to-slate-950 p-6 text-white shadow-sm">
+        <p className="text-sm text-indigo-100">Batch Program</p>
+        <h2 className="mt-1 text-2xl font-bold">{batch.name}</h2>
+        <p className="mt-2 text-sm text-indigo-100">
+          {batch.course?.title || "Course"} • {batch.teacher?.name || "Teacher"}
+        </p>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-4">
+        <Summary label="Status" value={batch.status} />
+        <Summary label="Capacity" value={String(batch.capacity || 0)} />
+        <Summary
+          label="Students"
+          value={`${batch.students?.length || 0}/${batch.capacity || 0}`}
+        />
+        <Summary label="Room" value={batch.roomNo || "—"} />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-2">
+        <Card title="Batch Information" icon={Layers}>
+          <Info label="Batch Name" value={batch.name} />
+          <Info label="Batch Code" value={batch.batchCode} />
+          <Info label="Status" value={batch.status} />
+          <Info label="Room No" value={batch.roomNo} />
+          <Info label="Capacity" value={batch.capacity} />
+        </Card>
+
+        <Card title="Course & Teacher" icon={BookOpen}>
+          <Info label="Course" value={batch.course?.title} />
+          <Info label="Teacher" value={batch.teacher?.name} />
+          <Info label="Teacher Phone" value={batch.teacher?.phone} />
+          <Info label="Teacher Email" value={batch.teacher?.email} />
+        </Card>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-2">
+        <Card title="Schedule" icon={CalendarDays}>
+          <Info label="Start Date" value={date(batch.startDate)} />
+          <Info label="End Date" value={date(batch.endDate)} />
+          <Info label="Timing" value={batch.scheduleTime} />
+          <Info
+            label="Created On"
+            value={date(batch.createdAt)}
+          />
+        </Card>
+
+        <Card title="Student Strength" icon={Users}>
+          <Info label="Total Students" value={batch.students?.length || 0} />
+          <Info label="Enrollments" value={batch.enrollments?.length || 0} />
+          <Info
+            label="Available Seats"
+            value={Math.max(
+              Number(batch.capacity || 0) - Number(batch.students?.length || 0),
+              0
+            )}
+          />
+        </Card>
+      </section>
+    </div>
+  );
+}
+
+function Summary({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="text-sm text-slate-500">{label}</p>
+      <p className="mt-2 text-lg font-bold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function Card({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-5 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+          <Icon size={20} />
+        </div>
+        <h2 className="text-lg font-bold text-slate-950">{title}</h2>
+      </div>
+
+      <div className="space-y-3">{children}</div>
+    </div>
+  );
+}
+
+function Info({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | number | null;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+      <p className="text-sm text-slate-500">{label}</p>
+      <p className="text-right text-sm font-semibold text-slate-900">
+        {value || "—"}
+      </p>
     </div>
   );
 }

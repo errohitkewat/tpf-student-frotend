@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, CreditCard, IndianRupee } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  CreditCard,
+  IndianRupee,
+  Loader2,
+  Save,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -26,6 +31,9 @@ type Props = {
   onBack: () => void;
 };
 
+const money = (value: number) =>
+  `₹${Number(value || 0).toLocaleString("en-IN")}`;
+
 export default function FeesEditForm({ fee, onBack }: Props) {
   const updateFee = useUpdateFeeStructure();
   const addPayment = useCreateFeePayment();
@@ -33,7 +41,7 @@ export default function FeesEditForm({ fee, onBack }: Props) {
   const [feeForm, setFeeForm] = useState({
     courseTotalFee: String(fee.courseTotalFee ?? ""),
     discountType: fee.discountType ?? DiscountType.PERCENTAGE,
-    discountValue: String(fee.discountValue ?? ""),
+    discountValue: String(fee.discountValue ?? 0),
     emiOption: String(fee.emiOption ?? false),
   });
 
@@ -45,21 +53,37 @@ export default function FeesEditForm({ fee, onBack }: Props) {
     paidDate: new Date().toISOString().split("T")[0],
   });
 
-  const handleFeeChange = (field: string, value: string) => {
-    setFeeForm((p) => ({ ...p, [field]: value }));
-  };
-
-  const handlePaymentChange = (field: string, value: string) => {
-    setPaymentForm((p) => ({ ...p, [field]: value }));
-  };
-
-  const paidAmount =
+  const currentPaidAmount =
     fee.feePayments?.reduce(
-      (t, p) => t + Number(p.totalAmount || 0),
+      (total, payment) => total + Number(payment.totalAmount || 0),
       0
     ) ?? 0;
 
-  const pendingAmount = Number(fee.finalFee || 0) - paidAmount;
+  const preview = useMemo(() => {
+    const total = Number(feeForm.courseTotalFee || 0);
+    const discount = Number(feeForm.discountValue || 0);
+
+    const discountAmount =
+      feeForm.discountType === DiscountType.PERCENTAGE
+        ? Math.round((total * discount) / 100)
+        : discount;
+
+    const finalFee = Math.max(total - discountAmount, 0);
+    const pending = Math.max(finalFee - currentPaidAmount, 0);
+
+    return {
+      total,
+      discountAmount,
+      finalFee,
+      paid: currentPaidAmount,
+      pending,
+    };
+  }, [
+    feeForm.courseTotalFee,
+    feeForm.discountType,
+    feeForm.discountValue,
+    currentPaidAmount,
+  ]);
 
   const handleUpdateFee = (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,12 +108,12 @@ export default function FeesEditForm({ fee, onBack }: Props) {
     const amount = Number(paymentForm.totalAmount);
 
     if (amount <= 0) {
-      alert("Amount should be > 0");
+      alert("Amount should be greater than 0");
       return;
     }
 
-    if (amount > pendingAmount) {
-      alert("Cannot exceed pending amount");
+    if (amount > preview.pending) {
+      alert("Payment amount cannot be greater than pending amount");
       return;
     }
 
@@ -102,7 +126,7 @@ export default function FeesEditForm({ fee, onBack }: Props) {
         note: paymentForm.note || undefined,
         paidDate: new Date(paymentForm.paidDate).toISOString(),
         studentId: fee.studentId,
-        festructureId: fee.id, // backend typo (keep same)
+        festructureId: fee.id,
       },
       {
         onSuccess: () => {
@@ -119,170 +143,264 @@ export default function FeesEditForm({ fee, onBack }: Props) {
   };
 
   return (
-    <div className="min-h-screen p-4 font-[Poppins,sans-serif]">
-      {/* Header (same as your theme) */}
-      <Card className="mb-4 shadow-md border-0 bg-white rounded-2xl">
-        <CardContent className="py-4 px-5">
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={onBack}
-              variant="ghost"
-              size="icon"
-              className="rounded-full"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+    <div className="space-y-6">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={onBack}
+            variant="outline"
+            size="icon"
+            className="rounded-xl border-slate-200"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
 
-            <div className="w-px h-7 bg-slate-200" />
-
-            <div className="flex items-center gap-2">
-              <div className="bg-indigo-600 text-white p-2 rounded-xl">
-                <CreditCard className="w-5 h-5" />
-              </div>
-
-              <div>
-                <h1 className="text-xl font-bold text-indigo-900">
-                  Edit Fee Structure
-                </h1>
-                <p className="text-xs text-slate-400">
-                  Update fee and record payment
-                </p>
-              </div>
-            </div>
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+            <CreditCard size={22} />
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Summary (same style blocks) */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-        <SummaryBox label="Final Fee" value={`₹${fee.finalFee}`} />
-        <SummaryBox label="Paid" value={`₹${paidAmount}`} />
-        <SummaryBox label="Pending" value={`₹${pendingAmount}`} danger />
-        <SummaryBox label="EMI" value={fee.emiOption ? "Yes" : "No"} />
+          <div>
+            <h1 className="text-xl font-bold text-slate-950">Edit Fee</h1>
+            <p className="text-sm text-slate-500">
+              Update fee structure and add student payment.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {/* Update Fee (same theme) */}
-        <form
-          onSubmit={handleUpdateFee}
-          className="space-y-4 border-2 border-slate-200 rounded-xl p-4 bg-white"
-        >
-          <h2 className="font-bold text-indigo-900">
-            Update Fee Structure
-          </h2>
+      <div className="grid gap-4 md:grid-cols-4">
+        <Summary label="Final Fee" value={money(preview.finalFee)} />
+        <Summary label="Paid" value={money(preview.paid)} />
+        <Summary label="Pending" value={money(preview.pending)} danger />
+        <Summary label="EMI" value={feeForm.emiOption === "true" ? "Yes" : "No"} />
+      </div>
 
-          <Field
-            label="Course Total Fee"
-            value={feeForm.courseTotalFee}
-            onChange={(v) => handleFeeChange("courseTotalFee", v)}
-          />
-
-          <div className="space-y-1.5">
-            <Label>Discount Type</Label>
-            <Select
-              value={feeForm.discountType}
-              onValueChange={(v) => handleFeeChange("discountType", v)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={DiscountType.PERCENTAGE}>
-                  Percentage
-                </SelectItem>
-                <SelectItem value={DiscountType.FIXED}>
-                  Fixed
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Field
-            label="Discount Value"
-            value={feeForm.discountValue}
-            onChange={(v) => handleFeeChange("discountValue", v)}
-          />
-
-          <div className="space-y-1.5">
-            <Label>EMI Option</Label>
-            <Select
-              value={feeForm.emiOption}
-              onValueChange={(v) => handleFeeChange("emiOption", v)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="true">Yes</SelectItem>
-                <SelectItem value="false">No</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button type="submit" disabled={updateFee.isPending}>
-            {updateFee.isPending ? "Updating..." : "Update Fee"}
-          </Button>
-        </form>
-
-        {/* Add Payment (same theme) */}
-        <form
-          onSubmit={handleAddPayment}
-          className="space-y-4 border-2 border-slate-200 rounded-xl p-4 bg-white"
-        >
-          <h2 className="font-bold text-indigo-900">
-            Add Student Payment
-          </h2>
-
-          <Field
-            label="Amount"
-            value={paymentForm.totalAmount}
-            onChange={(v) => handlePaymentChange("totalAmount", v)}
-          />
-
-          <div className="space-y-1.5">
-            <Label>Payment Mode</Label>
-            <Select
-              value={paymentForm.paymentMode}
-              onValueChange={(v) =>
-                handlePaymentChange("paymentMode", v)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={PaymentMode.CASH}>Cash</SelectItem>
-                <SelectItem value={PaymentMode.UPI}>UPI</SelectItem>
-                <SelectItem value={PaymentMode.MIXED}>
-                  Mixed
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Field
-            label="Transaction Ref"
-            value={paymentForm.transactionRef}
-            onChange={(v) =>
-              handlePaymentChange("transactionRef", v)
-            }
-          />
-
-          <Field
-            label="Note"
-            value={paymentForm.note}
-            onChange={(v) => handlePaymentChange("note", v)}
-          />
-
-          <Button
-            type="submit"
-            disabled={addPayment.isPending || pendingAmount <= 0}
-            className="bg-indigo-600 hover:bg-indigo-700"
+      <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+        <div className="space-y-6">
+          <form
+            onSubmit={handleUpdateFee}
+            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
           >
-            <IndianRupee className="w-4 h-4 mr-1" />
-            {addPayment.isPending ? "Adding..." : "Add Payment"}
-          </Button>
-        </form>
+            <h2 className="text-lg font-bold text-slate-950">
+              Fee Structure
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Change course fee, discount and EMI option.
+            </p>
+
+            <div className="mt-5 grid gap-5 md:grid-cols-2">
+              <Field label="Course Total Fee">
+                <Input
+                  type="number"
+                  value={feeForm.courseTotalFee}
+                  onChange={(e) =>
+                    setFeeForm({ ...feeForm, courseTotalFee: e.target.value })
+                  }
+                  className="h-11 rounded-xl border-slate-200"
+                />
+              </Field>
+
+              <Field label="Discount Type">
+                <Select
+                  value={feeForm.discountType}
+                  onValueChange={(value) =>
+                    setFeeForm({
+                      ...feeForm,
+                      discountType: value as DiscountType,
+                    })
+                  }
+                >
+                  <SelectTrigger className="h-11 rounded-xl border-slate-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={DiscountType.PERCENTAGE}>
+                      Percentage
+                    </SelectItem>
+                    <SelectItem value={DiscountType.FIXED}>Fixed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field label="Discount Value">
+                <Input
+                  type="number"
+                  value={feeForm.discountValue}
+                  onChange={(e) =>
+                    setFeeForm({ ...feeForm, discountValue: e.target.value })
+                  }
+                  className="h-11 rounded-xl border-slate-200"
+                />
+              </Field>
+
+              <Field label="EMI Option">
+                <Select
+                  value={feeForm.emiOption}
+                  onValueChange={(value) =>
+                    setFeeForm({ ...feeForm, emiOption: value })
+                  }
+                >
+                  <SelectTrigger className="h-11 rounded-xl border-slate-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="false">No</SelectItem>
+                    <SelectItem value="true">Yes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onBack}
+                className="rounded-xl border-slate-200"
+              >
+                Cancel
+              </Button>
+
+              <Button
+                type="submit"
+                disabled={updateFee.isPending}
+                className="rounded-xl bg-slate-950 px-6 text-white hover:bg-slate-800"
+              >
+                {updateFee.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                Update Fee
+              </Button>
+            </div>
+          </form>
+
+          <form
+            onSubmit={handleAddPayment}
+            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+          >
+            <h2 className="text-lg font-bold text-slate-950">Add Payment</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Record a new payment for this student.
+            </p>
+
+            <div className="mt-5 grid gap-5 md:grid-cols-2">
+              <Field label="Amount">
+                <Input
+                  type="number"
+                  value={paymentForm.totalAmount}
+                  onChange={(e) =>
+                    setPaymentForm({
+                      ...paymentForm,
+                      totalAmount: e.target.value,
+                    })
+                  }
+                  placeholder="Enter amount"
+                  className="h-11 rounded-xl border-slate-200"
+                />
+              </Field>
+
+              <Field label="Payment Mode">
+                <Select
+                  value={paymentForm.paymentMode}
+                  onValueChange={(value) =>
+                    setPaymentForm({
+                      ...paymentForm,
+                      paymentMode: value as PaymentMode,
+                    })
+                  }
+                >
+                  <SelectTrigger className="h-11 rounded-xl border-slate-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PaymentMode.CASH}>Cash</SelectItem>
+                    <SelectItem value={PaymentMode.UPI}>UPI</SelectItem>
+                    <SelectItem value={PaymentMode.MIXED}>Mixed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field label="Paid Date">
+                <Input
+                  type="date"
+                  value={paymentForm.paidDate}
+                  onChange={(e) =>
+                    setPaymentForm({
+                      ...paymentForm,
+                      paidDate: e.target.value,
+                    })
+                  }
+                  className="h-11 rounded-xl border-slate-200"
+                />
+              </Field>
+
+              <Field label="Transaction Reference">
+                <Input
+                  value={paymentForm.transactionRef}
+                  onChange={(e) =>
+                    setPaymentForm({
+                      ...paymentForm,
+                      transactionRef: e.target.value,
+                    })
+                  }
+                  placeholder="Optional"
+                  className="h-11 rounded-xl border-slate-200"
+                />
+              </Field>
+
+              <div className="md:col-span-2">
+                <Field label="Note">
+                  <Input
+                    value={paymentForm.note}
+                    onChange={(e) =>
+                      setPaymentForm({ ...paymentForm, note: e.target.value })
+                    }
+                    placeholder="Optional note"
+                    className="h-11 rounded-xl border-slate-200"
+                  />
+                </Field>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <Button
+                type="submit"
+                disabled={addPayment.isPending || preview.pending <= 0}
+                className="rounded-xl bg-indigo-600 px-6 text-white hover:bg-indigo-700"
+              >
+                {addPayment.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <IndianRupee className="mr-2 h-4 w-4" />
+                )}
+                Add Payment
+              </Button>
+            </div>
+          </form>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-950">Fee Preview</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Live calculation based on entered values.
+          </p>
+
+          <div className="mt-5 space-y-3">
+            <Preview label="Student" value={fee.student?.name || "—"} />
+            <Preview
+              label="Course"
+              value={fee.enrollment?.course?.title || "—"}
+            />
+            <Preview label="Batch" value={fee.enrollment?.batch?.name || "—"} />
+            <Preview label="Course Fee" value={money(preview.total)} />
+            <Preview label="Discount" value={money(preview.discountAmount)} />
+            <Preview label="Final Fee" value={money(preview.finalFee)} strong />
+            <Preview label="Already Paid" value={money(preview.paid)} />
+            <Preview label="Pending" value={money(preview.pending)} danger />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -290,22 +408,20 @@ export default function FeesEditForm({ fee, onBack }: Props) {
 
 function Field({
   label,
-  value,
-  onChange,
+  children,
 }: {
   label: string;
-  value: string;
-  onChange: (v: string) => void;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <Input value={value} onChange={(e) => onChange(e.target.value)} />
+    <div className="space-y-2">
+      <Label className="text-sm font-medium text-slate-700">{label}</Label>
+      {children}
     </div>
   );
 }
 
-function SummaryBox({
+function Summary({
   label,
   value,
   danger,
@@ -315,15 +431,40 @@ function SummaryBox({
   danger?: boolean;
 }) {
   return (
-    <div
-      className={`rounded-xl border p-3 bg-white ${
-        danger ? "border-red-100" : "border-indigo-100"
-      }`}
-    >
-      <p className="text-xs text-slate-400">{label}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="text-sm text-slate-500">{label}</p>
       <p
-        className={`text-sm font-bold ${
-          danger ? "text-red-600" : "text-slate-800"
+        className={`mt-2 text-xl font-bold ${
+          danger ? "text-red-600" : "text-slate-950"
+        }`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function Preview({
+  label,
+  value,
+  strong,
+  danger,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+      <p className="text-sm text-slate-500">{label}</p>
+      <p
+        className={`text-right text-sm font-semibold ${
+          danger
+            ? "text-red-600"
+            : strong
+            ? "text-indigo-700"
+            : "text-slate-900"
         }`}
       >
         {value}

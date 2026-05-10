@@ -2,83 +2,52 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  BookOpen,
-  CheckCircle,
-  IndianRupee,
-  Layers,
-  Plus,
-  Search,
-} from "lucide-react";
-import kyInstance from "@/lib/ky";
+import { Plus, Search, UserPlus, Users, CheckCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Loading from "@/components/ui/loading";
 import Error from "@/components/ui/error-loading";
-import { Course } from "@/lib/type";
-import CourseTable from "./Course-Table";
-
-type ApiResponse<T> = {
-  data: T;
-};
+import { Enquiry, EnquiryStatus } from "@/lib/type";
+import { getAllEnquiries } from "@/app/service/enquiry.service";
+import EnquiryTable from "./Enquiry-table";
 
 type Props = {
-  onAddCourse: () => void;
-  onViewCourse: (course: Course) => void;
-  onEditCourse: (course: Course) => void;
+  onAdd: () => void;
+  onView: (enquiry: Enquiry) => void;
+  onEdit: (enquiry: Enquiry) => void;
 };
 
-async function getCourses() {
-  const res = await kyInstance.get("courses").json<ApiResponse<Course[]>>();
-  return res.data || [];
-}
-
-export default function CourseFrame({
-  onAddCourse,
-  onViewCourse,
-  onEditCourse,
-}: Props) {
+export default function EnquiryFrame({ onAdd, onView, onEdit }: Props) {
   const [search, setSearch] = useState("");
 
   const { data = [], isLoading, isError } = useQuery({
-    queryKey: ["courses"],
-    queryFn: getCourses,
+    queryKey: ["enquiries"],
+    queryFn: getAllEnquiries,
   });
 
-  const filteredCourses = useMemo(() => {
-    const value = search.toLowerCase().trim();
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
 
-    if (!value) return data;
+    if (!q) return data;
 
-    return data.filter((course) => {
+    return data.filter((item) => {
       return (
-        course.title?.toLowerCase().includes(value) ||
-        course.instractionMode?.toLowerCase().includes(value) ||
-        course.descriptionInShort?.toLowerCase().includes(value)
+        item.studentName?.toLowerCase().includes(q) ||
+        item.mobile?.includes(q) ||
+        item.email?.toLowerCase().includes(q) ||
+        item.source?.toLowerCase().includes(q)
       );
     });
   }, [data, search]);
 
   const stats = {
     total: data.length,
-    active: data.filter((course) => course.isActive).length,
-    batches: data.reduce(
-      (sum, course) => sum + Number(course.batches?.length || 0),
-      0
-    ),
-    avgFee:
-      data.length > 0
-        ? Math.round(
-            data.reduce(
-              (sum, course) =>
-                sum + Number(course.offeredFees || course.totalFees || 0),
-              0
-            ) / data.length
-          )
-        : 0,
+    new: data.filter((e) => e.status === EnquiryStatus.NEW).length,
+    followUp: data.filter((e) => e.status === EnquiryStatus.FOLLOW_UP).length,
+    converted: data.filter((e) => e.status === EnquiryStatus.CONVERTED).length,
   };
 
-  if (isLoading) return <Loading text="Courses are loading..." />;
-  if (isError) return <Error text="Failed to load courses" />;
+  if (isLoading) return <Loading text="Loading enquiries..." />;
+  if (isError) return <Error text="Failed to load enquiries" />;
 
   return (
     <div className="space-y-6">
@@ -86,48 +55,44 @@ export default function CourseFrame({
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
             <p className="text-sm font-medium text-indigo-100">
-              Course Management
+              Enquiry Management
             </p>
 
             <h1 className="mt-2 text-3xl font-bold tracking-tight">
-              Courses
+              Student Enquiries
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-indigo-100">
-              Manage programs, course fees, duration, learning mode, batches and
-              student enrollments from one clean module.
+              Manage new leads, follow-ups, interested courses, and conversion
+              status in one simple module.
             </p>
           </div>
 
           <Button
-            onClick={onAddCourse}
+            onClick={onAdd}
             className="h-11 rounded-xl bg-white px-5 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Add Course
+            Add Enquiry
           </Button>
         </div>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Total Courses" value={stats.total} icon={BookOpen} />
-        <StatCard title="Active Courses" value={stats.active} icon={CheckCircle} />
-        <StatCard title="Total Batches" value={stats.batches} icon={Layers} />
-        <StatCard
-          title="Average Fee"
-          value={`₹${stats.avgFee.toLocaleString("en-IN")}`}
-          icon={IndianRupee}
-        />
+        <StatCard title="Total Enquiries" value={stats.total} icon={Users} />
+        <StatCard title="New Leads" value={stats.new} icon={UserPlus} />
+        <StatCard title="Follow Ups" value={stats.followUp} icon={Clock} />
+        <StatCard title="Converted" value={stats.converted} icon={CheckCircle} />
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <h2 className="text-lg font-bold text-slate-950">
-              Course Records
+              Enquiry Records
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Search, view and update course information.
+              Search, view and update student enquiries.
             </p>
           </div>
 
@@ -137,17 +102,13 @@ export default function CourseFrame({
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search course, mode..."
+              placeholder="Search name, mobile, email..."
               className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-50"
             />
           </div>
         </div>
 
-        <CourseTable
-          courses={filteredCourses}
-          onViewCourse={onViewCourse}
-          onEditCourse={onEditCourse}
-        />
+        <EnquiryTable data={filtered} onView={onView} onEdit={onEdit} />
       </section>
     </div>
   );
@@ -159,7 +120,7 @@ function StatCard({
   icon: Icon,
 }: {
   title: string;
-  value: string | number;
+  value: number;
   icon: React.ElementType;
 }) {
   return (

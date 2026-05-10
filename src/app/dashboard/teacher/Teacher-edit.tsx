@@ -1,30 +1,10 @@
 "use client";
 
-import { ArrowLeft, Save, X, User } from "lucide-react";
-import { startTransition, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-
+import { useState } from "react";
+import { ArrowLeft, Loader2, Save, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -32,354 +12,287 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-import { UpdateTeacherSchema, UpdateTeacherFormValues } from "@/lib/schema";
-import { useUpdateTeacher } from "./mutation";
 import { Teacher, TeacherStatus } from "@/lib/type";
+import { useUpdateTeacher } from "./mutation";
 
-interface Props {
-  teacher?: Teacher;
+const inputDate = (value?: string | Date) => {
+  if (!value) return "";
+  return new Date(value).toISOString().split("T")[0];
+};
+
+export default function TeacherEdit({
+  teacher,
+  onBack,
+}: {
+  teacher: Teacher;
   onBack: () => void;
-}
+}) {
+  const updateTeacher = useUpdateTeacher();
 
-export default function EditTeacherForm({ teacher, onBack }: Props) {
-  const form = useForm<UpdateTeacherFormValues>({
-    resolver: zodResolver(UpdateTeacherSchema),
-    defaultValues: {
-      id: "",
-      name: "",
-      code: "",
-      phone: "",
-      alternatePhone: "",
-      email: "",
-      professionalEmail: "",
-      qualification: "",
-      salaryAmount: 0,
-      joiningDate: "",
-      status: TeacherStatus.FULL_TIME,
-    },
+  const [form, setForm] = useState({
+    name: teacher.name || "",
+    phone: teacher.phone || "",
+    alternatePhone: teacher.alternatePhone || "",
+    email: teacher.email || "",
+    professionalEmail: teacher.professionalEmail || "",
+    qualification: teacher.qualification || "",
+    salaryAmount: String(teacher.salaryAmount || ""),
+    joiningDate: inputDate(teacher.joiningDate),
+    status: teacher.status || TeacherStatus.FULL_TIME,
+    code: teacher.code || "",
+    isActive: String(teacher.isActive ?? true),
   });
 
-  useEffect(() => {
-    if (teacher) {
-      form.reset({
-        id: teacher.id,
-        name: teacher.name,
-        code: teacher.code,
-        phone: teacher.phone,
-        alternatePhone: teacher.alternatePhone || "",
-        email: teacher.email,
-        professionalEmail: teacher.professionalEmail || "",
-        qualification: teacher.qualification || "",
-        salaryAmount: teacher.salaryAmount,
-        joiningDate: teacher.joiningDate,
-        status: teacher.status,
-      });
-    }
-  }, [teacher, form]);
+  const update = (key: string, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
-  const mutation = useUpdateTeacher();
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (!teacher) {
-    return (
-      <div className="p-6">
-        <p className="text-sm text-red-500">Teacher data not found.</p>
-        <Button onClick={onBack} type="button" className="mt-4">
-          Go Back
-        </Button>
-      </div>
-    );
-  }
-
-  async function onSubmit(data: UpdateTeacherFormValues) {
-    try {
-      const { id, ...payload } = data;
-
-      await mutation.mutateAsync({
-        teacherId: id,
+    updateTeacher.mutate(
+      {
+        teacherId: teacher.id,
         data: {
-          ...payload,
-          alternatePhone: payload.alternatePhone?.trim()
-            ? payload.alternatePhone
-            : undefined,
-          professionalEmail: payload.professionalEmail?.trim()
-            ? payload.professionalEmail
-            : undefined,
+          name: form.name,
+          phone: form.phone,
+          alternatePhone: form.alternatePhone || undefined,
+          email: form.email,
+          professionalEmail: form.professionalEmail || undefined,
+          qualification: form.qualification,
+          salaryAmount: Number(form.salaryAmount),
+          joiningDate: form.joiningDate,
+          status: form.status,
+          code: form.code,
+          isActive: form.isActive === "true",
         },
-      });
-
-      startTransition(() => {
-        onBack();
-      });
-    } catch (error) {
-      console.log("Teacher update error:", error);
-    }
-  }
+      },
+      { onSuccess: onBack }
+    );
+  };
 
   return (
-    <div className="min-h-screen p-6 space-y-6">
-      <Card className="shadow-md border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
-        <CardContent className="py-4 px-5">
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={onBack}
-              variant="ghost"
-              size="icon"
-              className="rounded-full hover:bg-indigo-100 text-indigo-700"
-              type="button"
+    <div className="space-y-6">
+      <Header
+        title="Edit Teacher"
+        desc="Update teacher profile, contact, salary and active status."
+        onBack={onBack}
+      />
+
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <Section title="Basic Details">
+          <Field label="Teacher Name">
+            <Input
+              required
+              value={form.name}
+              onChange={(e) => update("name", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+
+          <Field label="Teacher Code">
+            <Input
+              required
+              value={form.code}
+              onChange={(e) => update("code", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+
+          <Field label="Qualification">
+            <Input
+              required
+              value={form.qualification}
+              onChange={(e) => update("qualification", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+
+          <Field label="Joining Date">
+            <Input
+              required
+              type="date"
+              value={form.joiningDate}
+              onChange={(e) => update("joiningDate", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+        </Section>
+
+        <Section title="Contact Details">
+          <Field label="Phone">
+            <Input
+              required
+              value={form.phone}
+              onChange={(e) => update("phone", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+
+          <Field label="Alternate Phone">
+            <Input
+              value={form.alternatePhone}
+              onChange={(e) => update("alternatePhone", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+
+          <Field label="Email">
+            <Input
+              required
+              type="email"
+              value={form.email}
+              onChange={(e) => update("email", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+
+          <Field label="Professional Email">
+            <Input
+              type="email"
+              value={form.professionalEmail}
+              onChange={(e) => update("professionalEmail", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+        </Section>
+
+        <Section title="Job Details">
+          <Field label="Salary Amount">
+            <Input
+              required
+              type="number"
+              value={form.salaryAmount}
+              onChange={(e) => update("salaryAmount", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+
+          <Field label="Teacher Type">
+            <Select
+              value={form.status}
+              onValueChange={(value) => update("status", value)}
             >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+              <SelectTrigger className="h-11 rounded-xl border-slate-200">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TeacherStatus.FULL_TIME}>
+                  Full Time
+                </SelectItem>
+                <SelectItem value={TeacherStatus.DOUBT_TEACHER}>
+                  Doubt Teacher
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
 
-            <div className="w-px h-7 bg-slate-200" />
-
-            <div className="flex items-center gap-2">
-              <div className="bg-indigo-600 text-white p-2 rounded-xl">
-                <User className="w-5 h-5" />
-              </div>
-
-              <div>
-                <h1 className="text-xl font-bold text-indigo-900">
-                  Edit Teacher
-                </h1>
-
-                <p className="text-xs text-slate-400">
-                  Update teacher information
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Basic Info</CardTitle>
-                <CardDescription>Teacher basic information</CardDescription>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Teacher Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter teacher name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Teacher Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter teacher code" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter phone number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="alternatePhone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Alternate Phone</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter alternate phone"
-                          {...field}
-                          value={field.value ?? ""}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="Enter email"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="professionalEmail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Professional Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="Enter professional email"
-                          {...field}
-                          value={field.value ?? ""}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Professional Info</CardTitle>
-                <CardDescription>Teacher professional details</CardDescription>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="qualification"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Qualification</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter qualification" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="salaryAmount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Salary</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Enter salary"
-                          value={field.value ?? ""}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
-                          disabled={field.disabled}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="joiningDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Joining Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-
-                        <SelectContent>
-                          <SelectItem value={TeacherStatus.FULL_TIME}>
-                            Full Time
-                          </SelectItem>
-                          <SelectItem value={TeacherStatus.DOUBT_TEACHER}>
-                            Doubt Teacher
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onBack}
-              disabled={mutation.isPending}
+          <Field label="Active Status">
+            <Select
+              value={form.isActive}
+              onValueChange={(value) => update("isActive", value)}
             >
-              <X className="w-4 h-4 mr-2" />
-              Cancel
-            </Button>
+              <SelectTrigger className="h-11 rounded-xl border-slate-200">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="true">Active</SelectItem>
+                <SelectItem value="false">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+        </Section>
 
-            <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? (
-                "Loading..."
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Update Teacher
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
-      </Form>
+        <div className="flex justify-end gap-3 border-t border-slate-100 pt-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onBack}
+            className="rounded-xl border-slate-200"
+          >
+            Cancel
+          </Button>
+
+          <Button
+            disabled={updateTeacher.isPending}
+            className="rounded-xl bg-slate-950 px-6 text-white hover:bg-slate-800"
+          >
+            {updateTeacher.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
+            Update Teacher
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Header({
+  title,
+  desc,
+  onBack,
+}: {
+  title: string;
+  desc: string;
+  onBack: () => void;
+}) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-3">
+        <Button
+          onClick={onBack}
+          variant="outline"
+          size="icon"
+          className="rounded-xl border-slate-200"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+          <UserRound size={22} />
+        </div>
+
+        <div>
+          <h1 className="text-xl font-bold text-slate-950">{title}</h1>
+          <p className="text-sm text-slate-500">{desc}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mb-7">
+      <h2 className="mb-4 text-lg font-bold text-slate-950">{title}</h2>
+      <div className="grid gap-5 md:grid-cols-2">{children}</div>
+    </section>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm font-medium text-slate-700">{label}</Label>
+      {children}
     </div>
   );
 }

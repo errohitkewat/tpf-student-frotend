@@ -1,210 +1,145 @@
 "use client";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "./ui/sidebar";
-import {
-  ClipboardList,
-  Coffee,
-  CreditCard,
-  FolderTree,
-  LayoutGridIcon,
-  NotebookText,
-  ReceiptIndianRupee,
-  Settings,
-  Users,
-  UtensilsCrossed,
-} from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import LogoutButton from "./ui/LogoutButton";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  BookOpen,
+  CreditCard,
+  Gauge,
+  GraduationCap,
+  Layers,
+  LogOut,
+  MessageSquareText,
+  ScrollText,
+  Settings,
+  UserPlus,
+  UserRound,
+  Users,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-const menu = [
-  { id: 1, title: "Dashboard", to: "/dashboard", icon: LayoutGridIcon },
-  { id: 2, title: "Billing", to: "/dashboard/fees", icon: CreditCard },
-  { id: 3, title: "Student", to: "/dashboard/student", icon: NotebookText },
-  { id: 4, title: "Course", to: "/dashboard/course", icon: NotebookText },
-  { id: 5, title: "Certificate", to: "/dashboard/certificate", icon: NotebookText },
-  { id: 6, title: "Batch", to: "/dashboard/batch", icon: NotebookText },
-  { id: 7, title: "Teacher", to: "/dashboard/teacher", icon: NotebookText },
-  { id: 8, title: "Enquiry", to: "/dashboard/enquiry", icon: NotebookText },
+const menuItems = [
+  {
+    title: "Dashboard",
+    url: "/dashboard",
+    icon: Gauge,
+  },
+  {
+    title: "Students",
+    url: "/dashboard/student",
+    icon: Users,
+  },
+  {
+    title: "Enquiry",
+    url: "/dashboard/enquiry",
+    icon: MessageSquareText,
+  },
+  {
+    title: "Courses",
+    url: "/dashboard/course",
+    icon: BookOpen,
+  },
+  {
+    title: "Batches",
+    url: "/dashboard/batch",
+    icon: Layers,
+  },
+  {
+    title: "Teachers",
+    url: "/dashboard/teacher",
+    icon: UserRound,
+  },
+  {
+    title: "Fees",
+    url: "/dashboard/fees",
+    icon: CreditCard,
+  },
+  // {
+  //   title: "Certificates",
+  //   url: "/dashboard/certificate",
+  //   icon: ScrollText,
+  // },
 ];
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem("tfp_user");
+    router.push("/login");
+  };
+
   return (
-    <Sidebar
-      collapsible="icon"
-      variant="floating"
-      className="fixed top-0 left-0 h-screen"
-    >
-      <style>{scrollbarStyles}</style>
-      <SidebarContent className="flex flex-col overflow-hidden rounded-lg bg-background text-foreground">
-        <SidebarGroup className="flex flex-col flex-1">
-          <SidebarGroupLabel className="font-bold text-foreground text-2xl mt-4 mb-10 shrink-0">
-            TFP Coding.
-          </SidebarGroupLabel>
+    <aside className="sticky top-0 flex h-screen w-72 flex-col border-r border-slate-200 bg-white px-4 py-5">
+      <div className="mb-6 rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-slate-950 p-5 text-white shadow-sm">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
+          <GraduationCap size={24} />
+        </div>
 
-          <SidebarGroupContent className="flex-1">
-            <SidebarMenu className="scrollbar-custom font-medium flex flex-col gap-y-2 h-[70vh] overflow-y-scroll scrollbar-hidden overflow-x-hidden">
-              {menu.map((item) => {
-                const isActive =
-                  pathname === item.to ||
-                  (item.to !== "/" &&
-                    item.to !== "/dashboard" &&
-                    pathname.startsWith(item.to)) ||
-                  (item.to === "/" && pathname === "/");
+        <h1 className="mt-4 text-lg font-bold leading-tight">
+          TFP Coding Classes
+        </h1>
 
-                return (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      tooltip={item.title}
-                      asChild
-                      className={cn(
-                        "text-base py-[1.1rem] px-4 hover:bg-muted hover:text-foreground",
-                        isActive &&
-                          "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground",
-                      )}
-                    >
-                      <Link href={item.to}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-              <LogoutButton />
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+        <p className="mt-1 text-xs leading-5 text-indigo-100">
+          Management Dashboard
+        </p>
+      </div>
+
+      <nav className="flex-1 space-y-1">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive =
+            pathname === item.url || pathname.startsWith(`${item.url}/`);
+
+          return (
+            <Link
+              key={item.title}
+              href={item.url}
+              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+              }`}
+            >
+              <span
+                className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
+                  isActive
+                    ? "bg-indigo-100 text-indigo-700"
+                    : "bg-slate-100 text-slate-500 group-hover:text-slate-900"
+                }`}
+              >
+                <Icon size={18} />
+              </span>
+
+              {item.title}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="border-t border-slate-100 pt-4">
+        {/* <Link
+          href="/dashboard/settings"
+          className="mb-2 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+            <Settings size={18} />
+          </span>
+          Settings
+        </Link> */}
+
+        <Button
+          type="button"
+          onClick={handleLogout}
+          className="flex h-11 w-full items-center justify-start gap-3 rounded-xl bg-red-50 px-3 text-sm font-semibold text-red-600 hover:bg-red-100"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
+            <LogOut size={17} />
+          </span>
+          Logout
+        </Button>
+      </div>
+    </aside>
   );
 }
-
-const scrollbarStyles = `
-  .scrollbar-custom {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(99, 102, 241, 0.5) transparent;
-  }
-  
-  .scrollbar-custom::-webkit-scrollbar {
-    width: 1px;
-  }
-    .scrollbar-hidden::-webkit-scrollbar {
-  display: none;
-}
-
-
-.scrollbar-hidden {
-  scrollbar-width: none;
-}
-
-
-.scrollbar-hidden {
-  -ms-overflow-style: none;
-  overflow: auto; /* or overflow-y: scroll; */
-  
-  .scrollbar-custom::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 10px;
-  }
-
-  
-  .scrollbar-custom::-webkit-scrollbar-thumb {
-    background: linear-gradient(45deg, #6366f1, #8b5cf6);
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background-clip: content-box;
-    transition: all 0.3s ease;
-  }
-  
-  .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(45deg, #4f46e5, #7c3aed);
-    border-radius: 10px;
-    border: 1px solid transparent;
-    background-clip: content-box;
-    box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
-  }
-  
-  .scrollbar-custom::-webkit-scrollbar-thumb:active {
-    background: linear-gradient(45deg, #4338ca, #6d28d9);
-  }
-  
-  .scrollbar-custom-dark {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
-  }
-  
-  .scrollbar-custom-dark::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  .scrollbar-custom-dark::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 10px;
-  }
-  
-  .scrollbar-custom-dark::-webkit-scrollbar-thumb {
-    background: linear-gradient(45deg, #475569, #64748b);
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background-clip: content-box;
-    transition: all 0.3s ease;
-  }
-  
-  .scrollbar-custom-dark::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(45deg, #334155, #475569);
-    border-radius: 10px;
-    border: 1px solid transparent;
-    background-clip: content-box;
-    box-shadow: 0 0 10px rgba(148, 163, 184, 0.3);
-  }
-  
-  .scrollbar-custom-dark::-webkit-scrollbar-thumb:active {
-    background: linear-gradient(45deg, #1e293b, #334155);
-  }
-  
-  .scrollbar-main {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
-  }
-  
-  .scrollbar-main::-webkit-scrollbar {
-    width: 12px;
-  }
-  
-  .scrollbar-main::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 10px;
-  }
-  
-  .scrollbar-main::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899);
-    border-radius: 10px;
-    border: 3px solid transparent;
-    background-clip: content-box;
-    transition: all 0.3s ease;
-  }
-  
-  .scrollbar-main::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #4f46e5, #7c3aed, #db2777);
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background-clip: content-box;
-    box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
-  }
-  
-  .scrollbar-main::-webkit-scrollbar-thumb:active {
-    background: linear-gradient(135deg, #4338ca, #6d28d9, #be185d);
-  }
-`;

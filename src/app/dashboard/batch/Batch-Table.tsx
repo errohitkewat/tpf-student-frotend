@@ -1,235 +1,158 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Eye, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Edit, Eye } from "lucide-react";
-import BatchDelete from "./Batch-Delete";
 import { Batch } from "@/lib/type";
+import BatchDelete from "./Batch-Delete";
 import { useDeleteBatch } from "./mutation";
 
-interface BatchTableProps {
-  batchData: Batch[];
-  onEditBatch: (batch: Batch) => void;
+type Props = {
+  batches: Batch[];
   onViewBatch: (batch: Batch) => void;
-}
+  onEditBatch: (batch: Batch) => void;
+};
+
+const date = (value?: string | Date) => {
+  if (!value) return "—";
+
+  return new Date(value).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
 
 export default function BatchTable({
-  batchData,
-  onEditBatch,
+  batches,
   onViewBatch,
-}: BatchTableProps) {
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const filteredBatches = batchData.filter((batch) => {
-    const matchesSearch =
-      batch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      batch.batchCode.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "all" || batch.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
+  onEditBatch,
+}: Props) {
+  if (batches.length === 0) {
+    return (
+      <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-12 text-center">
+        <p className="text-sm font-medium text-slate-600">
+          No batch records found
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full flex flex-col mt-5">
-      <Card className="w-full shadow-lg border border-slate-200 rounded-2xl overflow-hidden bg-white">
-        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-white border-b border-slate-100 p-4">
-          <Input
-            placeholder="Search by batch name or code..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full md:max-w-sm h-9 text-sm border-slate-200 bg-slate-50 shadow-sm rounded-lg"
-          />
+    <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1000px]">
+          <thead className="bg-slate-50">
+            <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-5 py-4">Batch</th>
+              <th className="px-5 py-4">Course</th>
+              <th className="px-5 py-4">Teacher</th>
+              <th className="px-5 py-4">Schedule</th>
+              <th className="px-5 py-4">Capacity</th>
+              <th className="px-5 py-4">Status</th>
+              <th className="px-5 py-4 text-right">Action</th>
+            </tr>
+          </thead>
 
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-44 h-9 text-sm border-slate-200 shadow-sm rounded-lg bg-slate-50">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-
-            <SelectContent className="rounded-xl shadow-xl border-slate-100">
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="STARTED">Started</SelectItem>
-              <SelectItem value="ONGOING">Ongoing</SelectItem>
-              <SelectItem value="COMPLETED">Completed</SelectItem>
-            </SelectContent>
-          </Select>
-        </CardHeader>
-
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50 hover:bg-slate-50 border-b border-slate-200">
-                <TableHead className="text-xs w-14 pl-6">SNO</TableHead>
-                <TableHead className="text-xs">Batch Name</TableHead>
-                <TableHead className="text-xs">Batch Code</TableHead>
-                <TableHead className="text-xs">Capacity</TableHead>
-                <TableHead className="text-xs">Schedule Time</TableHead>
-                <TableHead className="text-xs">Start Date</TableHead>
-                <TableHead className="text-xs">End Date</TableHead>
-                <TableHead className="text-xs">Status</TableHead>
-                <TableHead className="text-xs text-right pr-6">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {filteredBatches.length > 0 ? (
-                filteredBatches.map((batch, index) => (
-                  <BatchTableRow
-                    key={batch.id}
-                    batch={batch}
-                    index={index}
-                    onEditBatch={onEditBatch}
-                    onViewBatch={onViewBatch}
-                  />
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={9}
-                    className="text-center py-10 text-sm text-slate-500"
-                  >
-                    No batches found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+          <tbody className="divide-y divide-slate-100">
+            {batches.map((batch) => (
+              <BatchRow
+                key={batch.id}
+                batch={batch}
+                onViewBatch={onViewBatch}
+                onEditBatch={onEditBatch}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
-function BatchTableRow({
+function BatchRow({
   batch,
-  index,
-  onEditBatch,
   onViewBatch,
+  onEditBatch,
 }: {
   batch: Batch;
-  index: number;
-  onEditBatch: (batch: Batch) => void;
   onViewBatch: (batch: Batch) => void;
+  onEditBatch: (batch: Batch) => void;
 }) {
-  const deleteMutation = useDeleteBatch();
-
-  const statusStyles: Record<
-    string,
-    { badge: string; dot: string; label: string }
-  > = {
-    STARTED: {
-      badge: "bg-blue-50 text-blue-700 border border-blue-200",
-      dot: "bg-blue-500",
-      label: "Started",
-    },
-    ONGOING: {
-      badge: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-      dot: "bg-emerald-500",
-      label: "Ongoing",
-    },
-    COMPLETED: {
-      badge: "bg-slate-100 text-slate-700 border border-slate-200",
-      dot: "bg-slate-500",
-      label: "Completed",
-    },
-  };
-
-  const current = statusStyles[batch.status] ?? {
-    badge: "bg-slate-100 text-slate-500 border border-slate-200",
-    dot: "bg-slate-400",
-    label: batch.status,
-  };
+  const deleteBatch = useDeleteBatch();
 
   return (
-    <TableRow className="group border-b border-slate-100 hover:bg-indigo-50/40 transition">
-      <TableCell className="pl-6 text-sm text-slate-400 w-14">
-        <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-slate-100 text-xs">
-          {index + 1}
-        </span>
-      </TableCell>
+    <tr className="text-sm text-slate-700 transition hover:bg-slate-50">
+      <td className="px-5 py-4">
+        <p className="font-semibold text-slate-950">{batch.name}</p>
+        <p className="mt-1 text-xs text-slate-400">
+          {batch.batchCode || "No code"} • Room {batch.roomNo || "—"}
+        </p>
+      </td>
 
-      <TableCell className="text-sm font-semibold text-slate-800">
-        {batch.name}
-      </TableCell>
+      <td className="px-5 py-4">{batch.course?.title || "—"}</td>
 
-      <TableCell className="text-sm text-slate-600">
-        {batch.batchCode}
-      </TableCell>
+      <td className="px-5 py-4">{batch.teacher?.name || "—"}</td>
 
-      <TableCell className="text-sm text-slate-600">{batch.capacity}</TableCell>
+      <td className="px-5 py-4">
+        <p className="font-medium text-slate-900">
+          {batch.scheduleTime || "—"}
+        </p>
+        <p className="mt-1 text-xs text-slate-400">
+          {date(batch.startDate)} - {date(batch.endDate)}
+        </p>
+      </td>
 
-      <TableCell className="text-sm text-slate-600">
-        {batch.scheduleTime}
-      </TableCell>
+      <td className="px-5 py-4">
+        {batch.students?.length || 0}/{batch.capacity || 0}
+      </td>
 
-      <TableCell className="text-sm text-slate-600">
-        {batch.startDate
-          ? new Date(batch.startDate).toLocaleDateString()
-          : "N/A"}
-      </TableCell>
+      <td className="px-5 py-4">
+        <StatusBadge status={batch.status} />
+      </td>
 
-      <TableCell className="text-sm text-slate-600">
-        {batch.endDate ? new Date(batch.endDate).toLocaleDateString() : "N/A"}
-      </TableCell>
-
-      <TableCell>
-        <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${current.badge}`}
-        >
-          <span className={`h-1.5 w-1.5 rounded-full ${current.dot}`} />
-          {current.label}
-        </span>
-      </TableCell>
-
-      <TableCell className="text-right pr-6">
-        <div className="flex items-center justify-end gap-1.5">
+      <td className="px-5 py-4">
+        <div className="flex justify-end gap-2">
           <Button
-            size="sm"
             variant="outline"
             onClick={() => onViewBatch(batch)}
-            className="h-8 w-8 p-0 rounded-lg"
+            className="h-9 rounded-lg border-slate-200 px-3"
           >
-            <Eye size={14} />
+            <Eye className="h-4 w-4" />
           </Button>
 
           <Button
-            size="sm"
-            variant="outline"
             onClick={() => onEditBatch(batch)}
-            className="h-8 w-8 p-0 rounded-lg"
+            className="h-9 rounded-lg bg-slate-950 px-3 text-white hover:bg-slate-800"
           >
-            <Edit size={14} />
+            <Pencil className="h-4 w-4" />
           </Button>
 
           <BatchDelete
             batchName={batch.name}
-            isPending={deleteMutation.isPending}
-            onConfirm={() => deleteMutation.mutate(batch.id)}
+            isPending={deleteBatch.isPending}
+            onConfirm={() => deleteBatch.mutate(batch.id)}
           />
         </div>
-      </TableCell>
-    </TableRow>
+      </td>
+    </tr>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const style =
+    status === "ONGOING"
+      ? "bg-emerald-50 text-emerald-700"
+      : status === "COMPLETED"
+      ? "bg-indigo-50 text-indigo-700"
+      : status === "STARTED"
+      ? "bg-amber-50 text-amber-700"
+      : "bg-slate-100 text-slate-700";
+
+  return (
+    <span
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${style}`}
+    >
+      {status}
+    </span>
   );
 }

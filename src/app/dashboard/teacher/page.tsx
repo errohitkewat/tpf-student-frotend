@@ -1,10 +1,9 @@
-import React from 'react'
-import Main from '../teacher/Main'
+import Main from "./Main";
 
-export default function page() {
+export default function Page() {
   return (
-    <div className='w-full px-6 pt-10 overflow-hidden'>
-      <Main/>
+    <div className="w-full px-6 py-8">
+      <Main />
     </div>
-  )
+  );
 }

@@ -1,331 +1,307 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Layers, Save, X } from "lucide-react";
-
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, Layers, Loader2 } from "lucide-react";
+import kyInstance from "@/lib/ky";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
+import { Label } from "@/components/ui/label";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-
-import {
-  CreateBatchSchema,
-  CreateBatchFormValues,
-  CreateBatchFormInput,
-} from "@/lib/schema";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { BatchStatus, Course, Teacher } from "@/lib/type";
 import { useCreateBatch } from "./mutation";
-import { BatchStatus } from "@/lib/type";
 
-interface Props {
-  onBack: () => void;
-}
-
-const defaultFormValues: CreateBatchFormInput = {
-  name: "",
-  capacity: 0,
-  startDate: "",
-  endDate: "",
-  scheduleTime: "",
-  roomNo: "",
-  teacherId: "",
-  courseId: "",
-  batchCode: "",
-  status: BatchStatus.ONGOING,
+type ApiResponse<T> = {
+  data: T;
 };
 
-export default function BatchAdd({ onBack }: Props) {
-  const form = useForm<CreateBatchFormInput, any, CreateBatchFormValues>({
-    resolver: zodResolver(CreateBatchSchema),
-    defaultValues: defaultFormValues,
+async function getCourses() {
+  const res = await kyInstance.get("courses").json<ApiResponse<Course[]>>();
+  return res.data || [];
+}
+
+async function getTeachers() {
+  const res = await kyInstance.get("teachers").json<ApiResponse<Teacher[]>>();
+  return res.data || [];
+}
+
+export default function BatchAdd({ onBack }: { onBack: () => void }) {
+  const createBatch = useCreateBatch();
+
+  const { data: courses = [] } = useQuery({
+    queryKey: ["courses"],
+    queryFn: getCourses,
   });
 
-  const mutation = useCreateBatch();
+  const { data: teachers = [] } = useQuery({
+    queryKey: ["teachers"],
+    queryFn: getTeachers,
+  });
 
-  const onSubmit = async (values: CreateBatchFormValues) => {
-    const payload = {
-      name: values.name.trim(),
-      capacity: values.capacity,
-      startDate: values.startDate,
-      endDate: values.endDate,
-      scheduleTime: values.scheduleTime.trim(),
-      batchCode: values.batchCode.trim(),
-      courseId: values.courseId.trim(),
-      teacherId: values.teacherId.trim(),
-      status: values.status,
-      ...(values.roomNo?.trim() ? { roomNo: values.roomNo.trim() } : {}),
-    };
+  const [form, setForm] = useState({
+    name: "",
+    batchCode: "",
+    capacity: "",
+    startDate: "",
+    endDate: "",
+    scheduleTime: "",
+    roomNo: "",
+    courseId: "",
+    teacherId: "",
+    status: BatchStatus.STARTED,
+  });
 
-    try {
-      await mutation.mutateAsync(payload);
-      form.reset(defaultFormValues);
-      onBack();
-    } catch (error) {
-      console.log("Submit Error:", error);
-    }
+  const update = (key: string, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleCancel = () => {
-    form.reset(defaultFormValues);
-    onBack();
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    createBatch.mutate(
+      {
+        name: form.name,
+        batchCode: form.batchCode,
+        capacity: Number(form.capacity),
+        startDate: form.startDate,
+        endDate: form.endDate,
+        scheduleTime: form.scheduleTime,
+        roomNo: form.roomNo || undefined,
+        courseId: form.courseId,
+        teacherId: form.teacherId,
+        status: form.status,
+      },
+      { onSuccess: onBack }
+    );
   };
 
   return (
-    <div className="min-h-screen p-6 space-y-6">
-      <Card className="shadow-sm">
-        <CardContent className="py-4 px-5 flex items-center gap-3">
-          <Button onClick={onBack} variant="ghost" size="icon" type="button">
-            <ArrowLeft className="w-5 h-5 text-indigo-700" />
+    <div className="space-y-6">
+      <Header
+        title="Add Batch"
+        desc="Create a new batch with course, teacher and schedule details."
+        onBack={onBack}
+      />
+
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <Section title="Batch Details">
+          <Field label="Batch Name">
+            <Input
+              required
+              value={form.name}
+              onChange={(e) => update("name", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+
+          <Field label="Batch Code">
+            <Input
+              required
+              value={form.batchCode}
+              onChange={(e) => update("batchCode", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+
+          <Field label="Capacity">
+            <Input
+              required
+              type="number"
+              value={form.capacity}
+              onChange={(e) => update("capacity", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+
+          <Field label="Room No">
+            <Input
+              value={form.roomNo}
+              onChange={(e) => update("roomNo", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+        </Section>
+
+        <Section title="Course & Teacher">
+          <Field label="Course">
+            <Select
+              value={form.courseId}
+              onValueChange={(value) => update("courseId", value)}
+            >
+              <SelectTrigger className="h-11 rounded-xl border-slate-200">
+                <SelectValue placeholder="Select course" />
+              </SelectTrigger>
+              <SelectContent>
+                {courses.map((course) => (
+                  <SelectItem key={course.id} value={course.id}>
+                    {course.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <Field label="Teacher">
+            <Select
+              value={form.teacherId}
+              onValueChange={(value) => update("teacherId", value)}
+            >
+              <SelectTrigger className="h-11 rounded-xl border-slate-200">
+                <SelectValue placeholder="Select teacher" />
+              </SelectTrigger>
+              <SelectContent>
+                {teachers.map((teacher) => (
+                  <SelectItem key={teacher.id} value={teacher.id}>
+                    {teacher.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </Section>
+
+        <Section title="Schedule">
+          <Field label="Start Date">
+            <Input
+              required
+              type="date"
+              value={form.startDate}
+              onChange={(e) => update("startDate", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+
+          <Field label="End Date">
+            <Input
+              required
+              type="date"
+              value={form.endDate}
+              onChange={(e) => update("endDate", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+
+          <Field label="Schedule Time">
+            <Input
+              required
+              placeholder="Example: 10:00 AM - 12:00 PM"
+              value={form.scheduleTime}
+              onChange={(e) => update("scheduleTime", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+
+          <Field label="Status">
+            <Select
+              value={form.status}
+              onValueChange={(value) => update("status", value)}
+            >
+              <SelectTrigger className="h-11 rounded-xl border-slate-200">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={BatchStatus.STARTED}>Started</SelectItem>
+                <SelectItem value={BatchStatus.ONGOING}>Ongoing</SelectItem>
+                <SelectItem value={BatchStatus.COMPLETED}>Completed</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+        </Section>
+
+        <div className="flex justify-end gap-3 border-t border-slate-100 pt-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onBack}
+            className="rounded-xl border-slate-200"
+          >
+            Cancel
           </Button>
 
-          <div className="w-px h-7 bg-border" />
+          <Button
+            disabled={createBatch.isPending}
+            className="rounded-xl bg-slate-950 px-6 text-white hover:bg-slate-800"
+          >
+            {createBatch.isPending && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            Save Batch
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
 
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-600 text-white p-2 rounded-md">
-              <Layers className="w-5 h-5" />
-            </div>
+function Header({
+  title,
+  desc,
+  onBack,
+}: {
+  title: string;
+  desc: string;
+  onBack: () => void;
+}) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-3">
+        <Button
+          onClick={onBack}
+          variant="outline"
+          size="icon"
+          className="rounded-xl border-slate-200"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
 
-            <div>
-              <h1 className="text-lg font-semibold text-indigo-900">
-                Add Batch
-              </h1>
-              <p className="text-sm text-slate-400">Create a new batch</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+          <Layers size={22} />
+        </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Batch Info</CardTitle>
-                <CardDescription>Basic batch details</CardDescription>
-              </CardHeader>
+        <div>
+          <h1 className="text-xl font-bold text-slate-950">{title}</h1>
+          <p className="text-sm text-slate-500">{desc}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Batch Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter batch name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mb-7">
+      <h2 className="mb-4 text-lg font-bold text-slate-950">{title}</h2>
+      <div className="grid gap-5 md:grid-cols-2">{children}</div>
+    </section>
+  );
+}
 
-                <FormField
-                  control={form.control}
-                  name="batchCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Batch Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter batch code" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="capacity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Capacity</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Enter batch capacity"
-                          value={
-                            typeof field.value === "number" ? field.value : ""
-                          }
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value === ""
-                                ? 0
-                                : Number(e.target.value),
-                            )
-                          }
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
-                          disabled={field.disabled}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="scheduleTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Schedule Time</FormLabel>
-                      <FormControl>
-                        <Input placeholder="10:00 AM - 12:00 PM" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="roomNo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Room No</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter room number"
-                          {...field}
-                          value={field.value ?? ""}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <FormControl>
-                        <select
-                          {...field}
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        >
-                          <option value={BatchStatus.STARTED}>Started</option>
-                          <option value={BatchStatus.ONGOING}>Ongoing</option>
-                          <option value={BatchStatus.COMPLETED}>
-                            Completed
-                          </option>
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Schedule & Relations</CardTitle>
-                <CardDescription>Batch timeline and relations</CardDescription>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="startDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Start Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="endDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>End Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="courseId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Course ID</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter course id" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="teacherId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Teacher ID</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter teacher id" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancel}
-              disabled={mutation.isPending}
-            >
-              <X className="w-4 h-4 mr-2" />
-              Cancel
-            </Button>
-
-            <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? (
-                "Loading..."
-              ) : (
-                <>
-                  <Save size={18} className="mr-2" />
-                  <span>Save</span>
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
-      </Form>
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm font-medium text-slate-700">{label}</Label>
+      {children}
     </div>
   );
 }

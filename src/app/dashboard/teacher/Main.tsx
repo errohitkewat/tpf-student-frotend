@@ -1,85 +1,55 @@
 "use client";
 
-import React, { Activity, useState } from "react";
-
-import TeacherFrame from "../teacher/Teacher-frame";
-import TeacherAdd from "../teacher/Teacher-add";
-import TeacherView from "../teacher/Teacher-View";
-import TeacherEdit from "../teacher/Teacher-edit";
+import { Activity, useState } from "react";
 import { Teacher } from "@/lib/type";
-import EditTeacherForm from "../teacher/Teacher-edit";
+import TeacherFrame from "./Teacher-frame";
+import TeacherAdd from "./Teacher-add";
+import TeacherEdit from "./Teacher-edit";
+import TeacherView from "./Teacher-View";
 
 export default function Main() {
-  const [currentFrame, setCurrentFrame] = useState<
-    "table" | "add" | "edit" | "view" | "delete"
-  >("table");
-  
+  const [frame, setFrame] = useState<"table" | "add" | "edit" | "view">(
+    "table"
+  );
 
-  // const [selectedTeacher, setSelectedTeacher] = useState<>(null);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
 
-  // 🔹 Add
-  const handleBackToTable = () => {
-    setCurrentFrame("table");
+  const back = () => {
+    setFrame("table");
+    setSelectedTeacher(null);
   };
-
-  const handleTeacherAdd = () => {
-    setCurrentFrame("add");
-  };
-
-  // 🔹 View
-const handleTeacherView = (teacher: Teacher) => {
-  setSelectedTeacher(teacher);
-  setCurrentFrame("view");
-};
-
-  // 🔹 Edit
-const handleTeacherEdit = (teacher: Teacher) => {
-  setSelectedTeacher(teacher);
-  setCurrentFrame("edit");
-};
-
-  // 🔹 Delete
-  const handleTeacherDelete = () => {
-    setSelectedTeacher(teacher);
-    setCurrentFrame("delete");
-  };
-
-  // 🔹 Back to table
-  const handleBack = () => {
-    setCurrentFrame("table");
-  };
-
 
   return (
     <>
-      <Activity mode={currentFrame === "add" ? "visible" : "hidden"}>
-        <TeacherAdd onBack={handleBack} />
-      </Activity>
-
-      <Activity mode={currentFrame === "edit" ? "visible" : "hidden"}>
-        {selectedTeacher ? (
-          <EditTeacherForm teacher={selectedTeacher} onBack={handleBack} />
-        ) : (
-          <div className="p-6 text-red-500">No teacher selected</div>
-        )}
-      </Activity>
-
-      <Activity mode={currentFrame === "view" ? "visible" : "hidden"}>
-        {selectedTeacher && (
-          <TeacherView teacher={selectedTeacher} onBack={handleBack} />
-        )}
-      </Activity>
-
-      <Activity mode={currentFrame === "table" ? "visible" : "hidden"}>
+      <Activity mode={frame === "table" ? "visible" : "hidden"}>
         <TeacherFrame
-          onAddTeacher={handleTeacherAdd}
-          onViewTeacher={handleTeacherView}
-          onEditTeacher={handleTeacherEdit}
+          onAddTeacher={() => setFrame("add")}
+          onViewTeacher={(teacher) => {
+            setSelectedTeacher(teacher);
+            setFrame("view");
+          }}
+          onEditTeacher={(teacher) => {
+            setSelectedTeacher(teacher);
+            setFrame("edit");
+          }}
         />
+      </Activity>
+
+      <Activity mode={frame === "add" ? "visible" : "hidden"}>
+        <TeacherAdd onBack={back} />
+      </Activity>
+
+      <Activity mode={frame === "view" ? "visible" : "hidden"}>
+        {selectedTeacher && (
+          <TeacherView teacher={selectedTeacher} onBack={back} />
+        )}
+      </Activity>
+
+      <Activity mode={frame === "edit" ? "visible" : "hidden"}>
+        {selectedTeacher && (
+          <TeacherEdit teacher={selectedTeacher} onBack={back} />
+        )}
       </Activity>
     </>
   );
 }
-
-

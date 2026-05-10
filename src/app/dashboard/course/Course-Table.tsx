@@ -1,196 +1,136 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Eye, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Edit, Eye, Trash2 } from "lucide-react";
-
 import { Course } from "@/lib/type";
-import { useDeleteCourse } from "./mutation";
 import CourseDelete from "./Course-Delete";
+import { useDeleteCourse } from "./mutation";
 
-interface CourseTableProps {
+type Props = {
+  courses: Course[];
   onViewCourse: (course: Course) => void;
   onEditCourse: (course: Course) => void;
-  courseData: Course[];
-}
+};
+
+const money = (value?: number) => {
+  return `₹${Number(value || 0).toLocaleString("en-IN")}`;
+};
 
 export default function CourseTable({
+  courses,
   onViewCourse,
   onEditCourse,
-  courseData,
-}: CourseTableProps) {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-
-  const filteredCourses = courseData.filter((course) => {
-    const title = course?.title?.toLowerCase() || "";
-    const searchValue = search?.toLowerCase() || "";
-
-    const matchSearch = title.includes(searchValue);
-
-    const matchStatus =
-      statusFilter === "all" ||
-      (statusFilter === "ACTIVE" && course.isActive) ||
-      (statusFilter === "INACTIVE" && !course.isActive);
-
-    return matchSearch && matchStatus;
-  });
+}: Props) {
+  if (courses.length === 0) {
+    return (
+      <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-12 text-center">
+        <p className="text-sm font-medium text-slate-600">
+          No course records found
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full flex flex-col mt-5">
-      <Card className="w-full shadow-lg border border-slate-200 rounded-2xl overflow-hidden bg-white">
-        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between p-4">
-          <Input
-            placeholder="Search by course title..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full md:max-w-sm h-9 bg-slate-50"
-          />
+    <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[950px]">
+          <thead className="bg-slate-50">
+            <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-5 py-4">Course</th>
+              <th className="px-5 py-4">Duration</th>
+              <th className="px-5 py-4">Mode</th>
+              <th className="px-5 py-4">Total Fee</th>
+              <th className="px-5 py-4">Offered Fee</th>
+              <th className="px-5 py-4">Status</th>
+              <th className="px-5 py-4 text-right">Action</th>
+            </tr>
+          </thead>
 
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-44 h-9 bg-slate-50">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="ACTIVE">Active</SelectItem>
-              <SelectItem value="INACTIVE">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-        </CardHeader>
-
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead className="pl-6">S.NO</TableHead>
-                <TableHead>Course ID</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Fees</TableHead>
-                <TableHead>Mode</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="text-right pr-6">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {filteredCourses.length > 0 ? (
-                filteredCourses.map((course, index) => (
-                  <CourseRow
-                    key={course.id}
-                    course={course}
-                    index={index}
-                    onViewCourse={onViewCourse}
-                    onEditCourse={onEditCourse}
-                  />
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center py-10">
-                    No courses found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+          <tbody className="divide-y divide-slate-100">
+            {courses.map((course) => (
+              <CourseRow
+                key={course.id}
+                course={course}
+                onViewCourse={onViewCourse}
+                onEditCourse={onEditCourse}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
 function CourseRow({
   course,
-  index,
   onViewCourse,
   onEditCourse,
 }: {
   course: Course;
-  index: number;
   onViewCourse: (course: Course) => void;
   onEditCourse: (course: Course) => void;
 }) {
-  const { mutate: deleteCourse, isPending } = useDeleteCourse();
-
-  const status = course.isActive
-    ? "bg-emerald-100 text-emerald-700"
-    : "bg-slate-100 text-slate-600";
+  const deleteCourse = useDeleteCourse();
 
   return (
-    <TableRow className="hover:bg-indigo-50/40">
-      <TableCell className="pl-6">
-        <span className="h-6 w-6 flex items-center justify-center bg-slate-100 rounded-full text-xs">
-          {index + 1}
-        </span>
-      </TableCell>
+    <tr className="text-sm text-slate-700 transition hover:bg-slate-50">
+      <td className="px-5 py-4">
+        <p className="font-semibold text-slate-950">{course.title}</p>
+        <p className="mt-1 line-clamp-1 text-xs text-slate-400">
+          {course.descriptionInShort || "No short description"}
+        </p>
+      </td>
 
-      <TableCell className="text-sm">{course.id}</TableCell>
+      <td className="px-5 py-4">{course.duration} Months</td>
 
-      <TableCell className="font-medium">{course.title}</TableCell>
+      <td className="px-5 py-4">{course.instractionMode || "—"}</td>
 
-      <TableCell>
-        <span className={`px-2 py-1 text-xs rounded-full ${status}`}>
+      <td className="px-5 py-4 font-medium text-slate-900">
+        {money(course.totalFees)}
+      </td>
+
+      <td className="px-5 py-4 font-medium text-slate-900">
+        {money(course.offeredFees)}
+      </td>
+
+      <td className="px-5 py-4">
+        <span
+          className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+            course.isActive
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-red-50 text-red-700"
+          }`}
+        >
           {course.isActive ? "Active" : "Inactive"}
         </span>
-      </TableCell>
+      </td>
 
-      <TableCell>{course.duration}</TableCell>
-
-      <TableCell>₹ {course.totalFees}</TableCell>
-
-      <TableCell>{course.instractionMode || "N/A"}</TableCell>
-
-      <TableCell>
-        {course.createdAt
-          ? new Date(course.createdAt).toLocaleDateString()
-          : "N/A"}
-      </TableCell>
-
-      <TableCell className="text-right pr-6">
+      <td className="px-5 py-4">
         <div className="flex justify-end gap-2">
           <Button
-            size="icon"
             variant="outline"
             onClick={() => onViewCourse(course)}
+            className="h-9 rounded-lg border-slate-200 px-3"
           >
-            <Eye size={14} />
+            <Eye className="h-4 w-4" />
           </Button>
 
           <Button
-            size="icon"
-            variant="outline"
             onClick={() => onEditCourse(course)}
+            className="h-9 rounded-lg bg-slate-950 px-3 text-white hover:bg-slate-800"
           >
-            <Edit size={14} />
+            <Pencil className="h-4 w-4" />
           </Button>
 
           <CourseDelete
-            courseTitle={course.title}
-            isPending={isPending}
-            onConfirm={() => deleteCourse(course.id)}
+            courseName={course.title}
+            isPending={deleteCourse.isPending}
+            onConfirm={() => deleteCourse.mutate(course.id)}
           />
         </div>
-      </TableCell>
-    </TableRow>
+      </td>
+    </tr>
   );
 }

@@ -1,66 +1,50 @@
 "use client";
 
 import { Activity, useState } from "react";
-import BatchFrame from "../batch/Batch-frame";
-import BatchAdd from "../batch/Batch-add";
-import BatchView from "../batch/Batch-View";
-import BatchEdit from "../batch/Batch-edit";
 import { Batch } from "@/lib/type";
+import BatchFrame from "./Batch-frame";
+import BatchAdd from "./Batch-add";
+import BatchEdit from "./Batch-edit";
+import BatchView from "./Batch-View";
 
 export default function Main() {
-  const [currentFrame, setCurrentFrame] = useState<
-    "table" | "add" | "edit" | "view" | "delete"
-  >("table");
+  const [frame, setFrame] = useState<"table" | "add" | "edit" | "view">(
+    "table"
+  );
 
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
 
-  const handleBatchAdd = () => {
-    setCurrentFrame("add");
-  };
-
-  const handleBatchView = (batch: Batch) => {
-    setSelectedBatch(batch);
-    setCurrentFrame("view");
-  };
-
-  const handleBatchEdit = (batch: Batch) => {
-    setSelectedBatch(batch);
-    setCurrentFrame("edit");
-  };
-
-  const handleBack = () => {
-    setCurrentFrame("table");
+  const back = () => {
+    setFrame("table");
     setSelectedBatch(null);
   };
 
   return (
     <>
-      <Activity mode={currentFrame === "add" ? "visible" : "hidden"}>
-        <BatchAdd onBack={handleBack} />
-      </Activity>
-
-      <Activity mode={currentFrame === "edit" ? "visible" : "hidden"}>
-        {selectedBatch ? (
-          <BatchEdit batch={selectedBatch} onBack={handleBack} />
-        ) : (
-          <div className="p-6 text-red-500">No batch selected</div>
-        )}
-      </Activity>
-
-      <Activity mode={currentFrame === "view" ? "visible" : "hidden"}>
-        {selectedBatch ? (
-          <BatchView batch={selectedBatch} onBack={handleBack} />
-        ) : (
-          <div className="p-6 text-red-500">No batch selected</div>
-        )}
-      </Activity>
-
-      <Activity mode={currentFrame === "table" ? "visible" : "hidden"}>
+      <Activity mode={frame === "table" ? "visible" : "hidden"}>
         <BatchFrame
-          onAddBatch={handleBatchAdd}
-          onViewBatch={handleBatchView}
-          onEditBatch={handleBatchEdit}
+          onAddBatch={() => setFrame("add")}
+          onViewBatch={(batch) => {
+            setSelectedBatch(batch);
+            setFrame("view");
+          }}
+          onEditBatch={(batch) => {
+            setSelectedBatch(batch);
+            setFrame("edit");
+          }}
         />
+      </Activity>
+
+      <Activity mode={frame === "add" ? "visible" : "hidden"}>
+        <BatchAdd onBack={back} />
+      </Activity>
+
+      <Activity mode={frame === "view" ? "visible" : "hidden"}>
+        {selectedBatch && <BatchView batch={selectedBatch} onBack={back} />}
+      </Activity>
+
+      <Activity mode={frame === "edit" ? "visible" : "hidden"}>
+        {selectedBatch && <BatchEdit batch={selectedBatch} onBack={back} />}
       </Activity>
     </>
   );

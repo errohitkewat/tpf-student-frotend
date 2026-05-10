@@ -1,86 +1,74 @@
 "use client";
 
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Trash2 } from "lucide-react";
 
-interface CourseDeleteProps {
-  courseTitle: string;
+type Props = {
+  courseName: string;
   onConfirm: () => void;
   isPending?: boolean;
-}
+};
 
 export default function CourseDelete({
-  courseTitle,
+  courseName,
   onConfirm,
   isPending = false,
-}: CourseDeleteProps) {
+}: Props) {
   const [open, setOpen] = useState(false);
-
-  const handleDeleteClick = () => {
-    setOpen(true);
-  };
 
   const handleConfirm = () => {
     onConfirm();
     setOpen(false);
   };
 
-  const handleCancel = () => {
-    if (isPending) return;
-    setOpen(false);
-  };
-
   return (
     <>
       <Button
-        size="icon"
-        variant="ghost"
-        className="hover:bg-red-100 text-red-600 rounded-lg"
-        onClick={handleDeleteClick}
+        type="button"
+        variant="outline"
         disabled={isPending}
+        onClick={() => setOpen(true)}
+        className="h-9 rounded-lg border-slate-200 px-3 text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
       >
-        <Trash2 size={16} />
+        <Trash2 className="h-4 w-4" />
       </Button>
 
-      <Dialog
-        open={open}
-        onOpenChange={(value) => {
-          if (isPending) return;
-          setOpen(value);
-        }}
-      >
-        <DialogContent>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>Delete Course</DialogTitle>
           </DialogHeader>
 
-          <p className="py-2">
-            Are you sure you want to delete <strong>{courseTitle}</strong>?
+          <p className="text-sm text-slate-600">
+            Are you sure you want to delete{" "}
+            <span className="font-semibold text-slate-950">{courseName}</span>?
           </p>
 
-          <DialogFooter className="flex justify-end space-x-2">
+          <DialogFooter>
             <Button
+              type="button"
               variant="outline"
-              onClick={handleCancel}
-              disabled={isPending}
+              onClick={() => setOpen(false)}
+              className="rounded-xl border-slate-200"
             >
               Cancel
             </Button>
 
             <Button
-              variant="destructive"
-              onClick={handleConfirm}
+              type="button"
               disabled={isPending}
+              onClick={handleConfirm}
+              className="rounded-xl bg-red-600 text-white hover:bg-red-700"
             >
-              {isPending ? "Deleting..." : "Confirm"}
+              {isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,9 +10,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Trash2 } from "lucide-react";
 
-interface StudentDeleteProps {
+interface Props {
   studentName: string;
   onConfirm: () => void;
   isPending?: boolean;
@@ -21,65 +21,54 @@ export default function StudentDelete({
   studentName,
   onConfirm,
   isPending = false,
-}: StudentDeleteProps) {
+}: Props) {
   const [open, setOpen] = useState(false);
-
-  const handleDeleteClick = () => {
-    setOpen(true);
-  };
 
   const handleConfirm = () => {
     onConfirm();
-  };
-
-  const handleCancel = () => {
-    if (isPending) return;
     setOpen(false);
   };
 
   return (
     <>
       <Button
-        size="sm"
+        type="button"
         variant="outline"
-        className="h-8 w-8 p-0 border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50 rounded-lg transition-all duration-150 shadow-none cursor-pointer"
-        onClick={handleDeleteClick}
+        onClick={() => setOpen(true)}
         disabled={isPending}
+        className="h-9 rounded-lg border-slate-200 px-3 text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
       >
-        <Trash2 size={14} />
+        <Trash2 className="h-4 w-4" />
       </Button>
 
-      <Dialog
-        open={open}
-        onOpenChange={(value) => {
-          if (isPending) return;
-          setOpen(value);
-        }}
-      >
-        <DialogContent>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>Delete Student</DialogTitle>
           </DialogHeader>
 
-          <p className="py-2">
-            Are you sure you want to delete <strong>{studentName}</strong>?
+          <p className="text-sm text-slate-600">
+            Are you sure you want to delete{" "}
+            <span className="font-semibold text-slate-950">{studentName}</span>?
           </p>
 
-          <DialogFooter className="flex justify-end gap-2">
+          <DialogFooter>
             <Button
+              type="button"
               variant="outline"
-              onClick={handleCancel}
-              disabled={isPending}
+              onClick={() => setOpen(false)}
+              className="rounded-xl border-slate-200"
             >
               Cancel
             </Button>
 
             <Button
-              variant="destructive"
+              type="button"
               onClick={handleConfirm}
               disabled={isPending}
+              className="rounded-xl bg-red-600 text-white hover:bg-red-700"
             >
-              {isPending ? "Deleting..." : "Confirm"}
+              {isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

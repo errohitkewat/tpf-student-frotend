@@ -1,319 +1,244 @@
-"use client"
+"use client";
 
-import { useTransition } from "react"
-import { useForm } from "react-hook-form"
+import { useState } from "react";
+import { ArrowLeft, BookOpen, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useCreateCourse } from "./mutation";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+export default function CourseAdd({ onBack }: { onBack: () => void }) {
+  const createCourse = useCreateCourse();
 
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from "@/components/ui/form"
-
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select"
-
-import { ArrowLeft, Save, X, BookOpen } from "lucide-react"
-import { CreateCourseFormValues, CreateCourseSchema  } from "@/lib/schema"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useCreateCourse } from "./mutation"
-
-
-interface Props {
-  onBack: () => void
-}
-
-export default function CourseAdd({ onBack }: Props) {          // Main Function
-
-
-  const [isPending, startTransition] = useTransition();
-
-  const form = useForm<CreateCourseFormValues>({
-    resolver: zodResolver(CreateCourseSchema),
-    defaultValues: {
-      title: "",
-      descriptionInDetail: "",
-      duration: 0,
-      descriptionInShort: "",
-      imageForThumbnail: "",
-      instractionMode: "",
-      offeredFees: 0,
-      roadmap: "",
-      totalFees: 0,
-    },
+  const [form, setForm] = useState({
+    title: "",
+    duration: "",
+    descriptionInShort: "",
+    descriptionInDetail: "",
+    imageForThumbnail: "",
+    roadmap: "",
+    totalFees: "",
+    offeredFees: "",
+    instractionMode: "",
   });
 
-  const mutation = useCreateCourse();
+  const update = (key: string, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
-  async function onSubmit(data: CreateCourseFormValues) {
-    try {
-      await mutation.mutateAsync(data);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
 
-      startTransition(() => {
-        onBack();
-        form.reset();
-
-      });
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-
-
-
-
+    createCourse.mutate(
+      {
+        title: form.title,
+        duration: Number(form.duration),
+        descriptionInShort: form.descriptionInShort,
+        descriptionInDetail: form.descriptionInDetail,
+        imageForThumbnail: form.imageForThumbnail,
+        roadmap: form.roadmap,
+        totalFees: Number(form.totalFees),
+        offeredFees: Number(form.offeredFees),
+        instractionMode: form.instractionMode,
+      },
+      { onSuccess: onBack }
+    );
+  };
 
   return (
-    <div className="space-y-8 mt-6 font-[Poppins,sans-serif]">
-      {/* HEADER */}
+    <div className="space-y-6">
+      <Header
+        title="Add Course"
+        desc="Create a new course with fee, duration and learning details."
+        onBack={onBack}
+      />
 
-      <Card className="shadow-md border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
-        <CardContent className="py-4 px-5">
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={onBack}
-              variant="ghost"
-              size="icon"
-              className="rounded-full hover:bg-indigo-100 text-indigo-700"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <Section title="Course Details">
+          <Field label="Course Title">
+            <Input
+              required
+              value={form.title}
+              onChange={(e) => update("title", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
 
-            <div className="w-px h-7 bg-slate-200" />
+          <Field label="Duration">
+            <Input
+              required
+              type="number"
+              placeholder="Duration in months"
+              value={form.duration}
+              onChange={(e) => update("duration", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
 
-            <div className="flex items-center gap-2">
-              <div className="bg-indigo-600 text-white p-2 rounded-xl">
-                <BookOpen className="w-5 h-5" />
-              </div>
+          <Field label="Instruction Mode">
+            <Input
+              required
+              placeholder="Online / Offline / Hybrid"
+              value={form.instractionMode}
+              onChange={(e) => update("instractionMode", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
 
-              <div>
-                <h1 className="text-xl font-bold text-indigo-900">
-                  Add Course
-                </h1>
+          <Field label="Thumbnail URL">
+            <Input
+              value={form.imageForThumbnail}
+              onChange={(e) => update("imageForThumbnail", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+        </Section>
 
-                <p className="text-xs text-slate-400">Create a new course</p>
-              </div>
-            </div>
+        <Section title="Fees">
+          <Field label="Total Fees">
+            <Input
+              required
+              type="number"
+              value={form.totalFees}
+              onChange={(e) => update("totalFees", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+
+          <Field label="Offered Fees">
+            <Input
+              required
+              type="number"
+              value={form.offeredFees}
+              onChange={(e) => update("offeredFees", e.target.value)}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </Field>
+        </Section>
+
+        <Section title="Description">
+          <div className="md:col-span-2">
+            <Field label="Short Description">
+              <Input
+                required
+                value={form.descriptionInShort}
+                onChange={(e) => update("descriptionInShort", e.target.value)}
+                className="h-11 rounded-xl border-slate-200"
+              />
+            </Field>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* FORM */}
+          <div className="md:col-span-2">
+            <Field label="Detailed Description">
+              <textarea
+                required
+                value={form.descriptionInDetail}
+                onChange={(e) => update("descriptionInDetail", e.target.value)}
+                className="min-h-28 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-50"
+              />
+            </Field>
+          </div>
 
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-8 mb-10"
+          <div className="md:col-span-2">
+            <Field label="Roadmap">
+              <textarea
+                value={form.roadmap}
+                onChange={(e) => update("roadmap", e.target.value)}
+                placeholder="Example: HTML, CSS, JavaScript, React..."
+                className="min-h-28 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-50"
+              />
+            </Field>
+          </div>
+        </Section>
+
+        <div className="flex justify-end gap-3 border-t border-slate-100 pt-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onBack}
+            className="rounded-xl border-slate-200"
+          >
+            Cancel
+          </Button>
+
+          <Button
+            disabled={createCourse.isPending}
+            className="rounded-xl bg-slate-950 px-6 text-white hover:bg-slate-800"
+          >
+            {createCourse.isPending && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            Save Course
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Header({
+  title,
+  desc,
+  onBack,
+}: {
+  title: string;
+  desc: string;
+  onBack: () => void;
+}) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-3">
+        <Button
+          onClick={onBack}
+          variant="outline"
+          size="icon"
+          className="rounded-xl border-slate-200"
         >
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* LEFT CARD */}
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
 
-            <Card className="border-0 shadow-sm bg-white/80 rounded-2xl">
-              <CardContent className="p-6 space-y-6">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Course Title</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter course title" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+          <BookOpen size={22} />
+        </div>
 
-                <FormField
-                  control={form.control}
-                  name="duration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Duration (Days)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+        <div>
+          <h1 className="text-xl font-bold text-slate-950">{title}</h1>
+          <p className="text-sm text-slate-500">{desc}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-                <FormField
-                  control={form.control}
-                  name="instractionMode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Instruction Mode</FormLabel>
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mb-7">
+      <h2 className="mb-4 text-lg font-bold text-slate-950">{title}</h2>
+      <div className="grid gap-5 md:grid-cols-2">{children}</div>
+    </section>
+  );
+}
 
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select mode" />
-                          </SelectTrigger>
-                        </FormControl>
-
-                        <SelectContent>
-                          <SelectItem value="Online">Online</SelectItem>
-                          <SelectItem value="Offline">Offline</SelectItem>
-                          <SelectItem value="Hybrid">Hybrid</SelectItem>
-                        </SelectContent>
-                      </Select>
-
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="totalFees"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Total Fees</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            {/* RIGHT CARD */}
-
-            <Card className="border-0 shadow-sm bg-white/80 rounded-2xl">
-              <CardContent className="p-6 space-y-6">
-                <FormField
-                  control={form.control}
-                  name="descriptionInShort"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Short Description</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="descriptionInDetail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Detailed Description</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="roadmap"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Roadmap</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="imageForThumbnail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Thumbnail URL</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="offeredFees"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Offered Fees</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* BUTTONS */}
-
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => form.reset()}
-            >
-              <X size={18} className="mr-2" />
-              Cancel
-            </Button>
-
-            <Button type="submit" disabled={isPending}>
-              {isPending ? ("loading...") : 
-              ( <>
-                  {" "}<Save size={18} className="mr-2" /> <p>save</p>
-                </>)
-              }
-            </Button>
-            
-          </div>
-        </form>
-      </Form>
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm font-medium text-slate-700">{label}</Label>
+      {children}
     </div>
   );
 }

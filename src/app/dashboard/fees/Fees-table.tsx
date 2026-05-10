@@ -2,36 +2,29 @@
 
 import { FeeStructure } from "@/lib/type";
 import { Button } from "@/components/ui/button";
-import {
-  CalendarDays,
-  CreditCard,
-  Eye,
-  IndianRupee,
-  Pencil,
-  Phone,
-  UserRound,
-  BookOpen,
-  Layers,
-} from "lucide-react";
+import { Eye, Pencil } from "lucide-react";
 
 interface Props {
   feeData: FeeStructure[];
-  onEditFees: (f: FeeStructure) => void;
-  onViewFees: (f: FeeStructure) => void;
+  onEditFees: (fee: FeeStructure) => void;
+  onViewFees: (fee: FeeStructure) => void;
 }
 
-const fmt = (d?: string) =>
-  d
-    ? new Date(d).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : "—";
+const money = (value: number) => {
+  return `₹${Number(value || 0).toLocaleString("en-IN")}`;
+};
 
-const statusOf = (finalFee: number, paid: number) => {
-  const p = finalFee - paid;
-  if (p <= 0) return "Paid";
+const getPaidAmount = (fee: FeeStructure) => {
+  return (
+    fee.feePayments?.reduce(
+      (total, payment) => total + Number(payment.totalAmount || 0),
+      0
+    ) ?? 0
+  );
+};
+
+const getStatus = (total: number, paid: number) => {
+  if (paid >= total) return "Paid";
   if (paid > 0) return "Partial";
   return "Pending";
 };
@@ -41,126 +34,114 @@ export default function FeesTable({
   onEditFees,
   onViewFees,
 }: Props) {
+  if (feeData.length === 0) {
+    return (
+      <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-12 text-center">
+        <p className="text-sm font-medium text-slate-600">
+          No fee records found
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
-      {feeData.length === 0 ? (
-        <p className="text-sm text-slate-500">No fee records found.</p>
-      ) : (
-        <div className="space-y-4">
-          {feeData.map((fee) => {
-            const paid =
-              fee.feePayments?.reduce(
-                (t, p) => t + Number(p.totalAmount || 0),
-                0
-              ) ?? 0;
+    <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[900px] border-collapse">
+          <thead className="bg-slate-50">
+            <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-5 py-4">Student</th>
+              <th className="px-5 py-4">Course</th>
+              <th className="px-5 py-4">Batch</th>
+              <th className="px-5 py-4">Total</th>
+              <th className="px-5 py-4">Paid</th>
+              <th className="px-5 py-4">Pending</th>
+              <th className="px-5 py-4">Status</th>
+              <th className="px-5 py-4 text-right">Action</th>
+            </tr>
+          </thead>
 
-            const pending = Number(fee.finalFee || 0) - paid;
-            const status = statusOf(Number(fee.finalFee || 0), paid);
+          <tbody className="divide-y divide-slate-100">
+            {feeData.map((fee) => {
+              const total = Number(fee.finalFee || fee.courseTotalFee || 0);
+              const paid = getPaidAmount(fee);
+              const pending = Math.max(total - paid, 0);
+              const status = getStatus(total, paid);
 
-            return (
-              <div
-                key={fee.id}
-                className="rounded-2xl border border-slate-200 p-5"
-              >
-                <div className="flex flex-col gap-4 md:flex-row md:justify-between">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <UserRound className="text-indigo-600" />
-                      <h2 className="font-bold text-indigo-950">
-                        {fee.student?.name}
-                      </h2>
-
-                      <span className="text-xs px-3 py-1 rounded-full bg-indigo-50 text-indigo-700">
-                        {status}
-                      </span>
+              return (
+                <tr
+                  key={fee.id}
+                  className="text-sm text-slate-700 transition hover:bg-slate-50"
+                >
+                  <td className="px-5 py-4">
+                    <div>
+                      <p className="font-semibold text-slate-950">
+                        {fee.student?.name || "Unknown Student"}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {fee.student?.mobile || "No mobile"}
+                      </p>
                     </div>
+                  </td>
 
-                    <div className="text-xs text-slate-400 flex gap-3 flex-wrap">
-                      <span className="flex gap-1 items-center">
-                        <Phone className="w-3 h-3" />
-                        {fee.student?.mobile}
-                      </span>
-                      <span className="flex gap-1 items-center">
-                        <CalendarDays className="w-3 h-3" />
-                        {fmt(fee.enrollment?.enrollmentDate)}
-                      </span>
+                  <td className="px-5 py-4">
+                    {fee.enrollment?.course?.title || "—"}
+                  </td>
+
+                  <td className="px-5 py-4">
+                    {fee.enrollment?.batch?.name || "—"}
+                  </td>
+
+                  <td className="px-5 py-4 font-medium text-slate-900">
+                    {money(total)}
+                  </td>
+
+                  <td className="px-5 py-4 font-medium text-slate-900">
+                    {money(paid)}
+                  </td>
+
+                  <td className="px-5 py-4 font-medium text-slate-900">
+                    {money(pending)}
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+                        status === "Paid"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : status === "Partial"
+                          ? "bg-amber-50 text-amber-700"
+                          : "bg-red-50 text-red-700"
+                      }`}
+                    >
+                      {status}
+                    </span>
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => onViewFees(fee)}
+                        className="h-9 rounded-lg border-slate-200 px-3"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+
+                      <Button
+                        onClick={() => onEditFees(fee)}
+                        className="h-9 rounded-lg bg-slate-950 px-3 text-white hover:bg-slate-800"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                     </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                      <Box label="Total" v={fee.courseTotalFee} />
-                      <Box label="Discount" v={fee.discountAmount ?? 0} />
-                      <Box label="Final" v={fee.finalFee} highlight />
-                      <Box label="Paid" v={paid} />
-                      <Box label="Pending" v={pending} danger />
-                    </div>
-
-                    <div className="text-xs text-slate-500 flex gap-4">
-                      <span className="flex gap-1 items-center">
-                        <BookOpen className="w-3 h-3" />
-                        {fee.enrollment?.course?.title}
-                      </span>
-                      <span className="flex gap-1 items-center">
-                        <Layers className="w-3 h-3" />
-                        {fee.enrollment?.batch?.name}
-                      </span>
-                      <span className="flex gap-1 items-center">
-                        <CreditCard className="w-3 h-3" />
-                        EMI: {fee.emiOption ? "Yes" : "No"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button onClick={() => onViewFees(fee)} variant="outline">
-                      <Eye className="w-4 h-4 mr-1" /> View
-                    </Button>
-                    <Button onClick={() => onEditFees(fee)}>
-                      <Pencil className="w-4 h-4 mr-1" /> Edit
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Box({
-  label,
-  v,
-  highlight,
-  danger,
-}: {
-  label: string;
-  v: number;
-  highlight?: boolean;
-  danger?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-xl p-3 border ${
-        highlight
-          ? "bg-indigo-50 border-indigo-100"
-          : danger
-          ? "bg-red-50 border-red-100"
-          : "bg-slate-50 border-slate-100"
-      }`}
-    >
-      <p className="text-[10px] text-slate-400">{label}</p>
-      <p
-        className={`font-bold text-sm ${
-          highlight
-            ? "text-indigo-900"
-            : danger
-            ? "text-red-600"
-            : "text-slate-800"
-        }`}
-      >
-        ₹{v}
-      </p>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

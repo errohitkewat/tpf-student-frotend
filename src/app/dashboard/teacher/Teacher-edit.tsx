@@ -64,7 +64,7 @@ export default function TeacherEdit({
           joiningDate: form.joiningDate,
           status: form.status,
           code: form.code,
-          isActive: form.isActive === "true",
+          // isActive: form.isActive === "true",
         },
       },
       { onSuccess: onBack }

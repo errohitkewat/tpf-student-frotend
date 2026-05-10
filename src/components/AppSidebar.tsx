@@ -10,7 +10,7 @@ import {
   Layers,
   LogOut,
   MessageSquareText,
-  ScrollText,
+  // ScrollText,
   Settings,
   UserPlus,
   UserRound,

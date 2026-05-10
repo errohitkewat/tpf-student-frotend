@@ -1,78 +1,64 @@
 import kyInstance from "@/lib/ky";
+import { Certificate } from "@/lib/type";
 
-// Create Certificate Payload
-export interface CreateCertificatePayload {
+type ApiResponse<T> = {
+  success: boolean;
+  message: string;
+  data: T;
+};
+
+export type CreateCertificatePayload = {
   certificateNumber: string;
   verificationHash: string;
-
   studentId: string;
   courseId: string;
   enrollmentId: string;
   batchId: string;
   templateId: string;
-
   issueDate: string;
   completionDate: string;
-
   grade: string;
-
+  generatedBy: string;
+  isActive: boolean;
   remarks?: string;
   revokedReason?: string;
   revokedAt?: string;
-
-  generatedBy: string;
   pdfUrl?: string;
+};
 
-  isActive: boolean;
-}
+export type UpdateCertificatePayload = Partial<CreateCertificatePayload>;
 
-// Update Certificate Form Values
-export interface UpdateCertificateFormValues {
-  id: string;
+export const getAllCertificates = async (): Promise<Certificate[]> => {
+  const res = await kyInstance
+    .get("certificates")
+    .json<ApiResponse<Certificate[]>>();
 
-  certificateNumber: string;
-  verificationHash: string;
+  return res.data || [];
+};
 
-  studentId: string;
-  courseId: string;
-  enrollmentId: string;
-  batchId: string;
-  templateId: string;
-
-  issueDate: string;
-  completionDate: string;
-
-  grade: string;
-
-  remarks?: string;
-  revokedReason?: string;
-  revokedAt?: string;
-
-  generatedBy: string;
-  pdfUrl?: string;
-
-  isActive: boolean;
-}
-
-// Update Certificate Payload
-export type UpdateCertificatePayload = Omit<UpdateCertificateFormValues, "id">;
-
-// Create Certificate
 export const createCertificate = async (data: CreateCertificatePayload) => {
-  return await kyInstance.post("certificates/generate", { json: data }).json();
+  const res = await kyInstance
+    .post("certificates", { json: data })
+    .json<ApiResponse<Certificate>>();
+
+  return res.data;
 };
 
-// Update Certificate
 export const updateCertificate = async (
-  data: UpdateCertificatePayload,
-  certificateId: string
+  certificateId: string,
+  data: UpdateCertificatePayload
 ) => {
-  return await kyInstance
+  const res = await kyInstance
     .patch(`certificates/${certificateId}`, { json: data })
-    .json();
+    .json<ApiResponse<Certificate>>();
+
+  return res.data;
 };
 
-// Delete Certificate
 export const deleteCertificate = async (certificateId: string) => {
-  return await kyInstance.delete(`certificates/${certificateId}`).json();
+  const res = await kyInstance
+    .delete(`certificates/${certificateId}`)
+    .json<ApiResponse<Certificate>>();
+
+  return res.data;
 };

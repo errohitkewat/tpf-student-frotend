@@ -51,7 +51,7 @@ export default function TeacherAdd({ onBack }: { onBack: () => void }) {
         joiningDate: form.joiningDate,
         status: form.status,
         code: form.code,
-        isActive: form.isActive === "true",
+        // isActive: form.isActive === "true",
       },
       { onSuccess: onBack }
     );
